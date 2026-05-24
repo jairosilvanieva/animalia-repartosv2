@@ -47,7 +47,22 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
         </label>
       </div>
 
-      <label>Productos <textarea rows="5" name="productos" [(ngModel)]="model.productos"></textarea></label>
+      <div class="product-editor">
+        <div class="product-editor-head">
+          <strong>Productos</strong>
+          <button type="button" class="secondary" (click)="addProduct()">Agregar producto</button>
+        </div>
+        <div class="product-row" *ngFor="let item of productItems; let i = index">
+          <label>Cantidad
+            <input type="number" min="1" step="1" [name]="'product_qty_' + i" [(ngModel)]="item.quantity" />
+          </label>
+          <label>Producto
+            <input [name]="'product_name_' + i" [(ngModel)]="item.product_name" />
+          </label>
+          <button type="button" class="remove" (click)="removeProduct(i)" [disabled]="productItems.length === 1">Eliminar</button>
+        </div>
+      </div>
+
       <label>Observaciones <textarea rows="3" name="observaciones" [(ngModel)]="model.observaciones"></textarea></label>
 
       <div class="actions">
@@ -114,18 +129,51 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
       color: var(--rojo);
       font-weight: 900;
     }
+    .product-editor {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1.5px solid var(--gris-l);
+      background: #f8fafc;
+    }
+    .product-editor-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .product-editor strong {
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .product-row {
+      display: grid;
+      grid-template-columns: 90px 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .product-row .remove {
+      background: #fff;
+      border: 1.5px solid var(--gris-l);
+      color: var(--rojo);
+      padding: 10px 12px;
+    }
+    @media (max-width: 760px) {
+      .product-row { grid-template-columns: 1fr; }
+    }
   `]
 })
 export class ManualOrderComponent {
   message = '';
   paymentMethods = PAYMENT_METHODS;
+  productItems = [this.emptyProduct()];
   model = {
     cliente: '',
     fecha_reparto: new Date().toISOString().slice(0, 10),
     telefono: '',
     domicilio: '',
     entre_calles: '',
-    productos: '',
     forma_pago: '',
     importe_a_cobrar: 0,
     rango_horario_desde: '',
@@ -137,16 +185,43 @@ export class ManualOrderComponent {
   constructor(private api: ApiService) {}
 
   save() {
-    this.api.createManualOrder(this.model).subscribe(() => {
+    this.api.createManualOrder({
+      ...this.model,
+      productos: this.productPayload()
+    }).subscribe(() => {
       this.message = 'Pedido guardado.';
       this.model.cliente = '';
       this.model.telefono = '';
       this.model.domicilio = '';
-      this.model.productos = '';
+      this.productItems = [this.emptyProduct()];
       this.model.observaciones = '';
       this.model.fecha_reparto = new Date().toISOString().slice(0, 10);
       this.model.rango_horario_desde = '';
       this.model.rango_horario_hasta = '';
     });
+  }
+
+  addProduct() {
+    this.productItems = [...this.productItems, this.emptyProduct()];
+  }
+
+  removeProduct(index: number) {
+    if (this.productItems.length === 1) return;
+    this.productItems = this.productItems.filter((_, itemIndex) => itemIndex !== index);
+  }
+
+  private productPayload() {
+    return this.productItems
+      .map((item) => ({
+        product_name: String(item.product_name || '').trim(),
+        quantity: Number(item.quantity || 1),
+        unit_price: 0,
+        total: 0
+      }))
+      .filter((item) => item.product_name);
+  }
+
+  private emptyProduct() {
+    return { product_name: '', quantity: 1 };
   }
 }

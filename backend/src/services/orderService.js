@@ -5,6 +5,12 @@ const ORDER_COLUMNS = `
   o.*, s.name AS store_name
 `;
 
+const ORDER_LIST_COLUMNS = `
+  o.*, s.name AS store_name,
+  COALESCE(item_summary.items_count, 0) AS items_count,
+  item_summary.products_summary
+`;
+
 const BASE_LAT = -38.0089;
 const BASE_LON = -57.5502;
 
@@ -43,9 +49,24 @@ export async function listOrders(filters = {}) {
   }
 
   const sql = `
-    SELECT ${ORDER_COLUMNS}
+    SELECT ${ORDER_LIST_COLUMNS}
     FROM orders o
     LEFT JOIN stores s ON s.id = o.store_id
+    LEFT JOIN (
+      SELECT
+        order_id,
+        COUNT(*) AS items_count,
+        GROUP_CONCAT(
+          CONCAT(
+            CASE WHEN quantity = FLOOR(quantity) THEN CAST(quantity AS UNSIGNED) ELSE quantity END,
+            ' x ',
+            product_name
+          )
+          ORDER BY id SEPARATOR ' | '
+        ) AS products_summary
+      FROM order_items
+      GROUP BY order_id
+    ) item_summary ON item_summary.order_id = o.id
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
     ORDER BY
       o.priority DESC,
@@ -278,7 +299,16 @@ async function createOrder(order) {
 }
 
 function normalizeManualItems(productos) {
-  if (Array.isArray(productos)) return productos;
+  if (Array.isArray(productos)) {
+    return productos
+      .map((item) => ({
+        product_name: item.product_name || item.nombre || item.name || '',
+        quantity: Number(item.quantity || item.cantidad || 1),
+        unit_price: Number(item.unit_price || 0),
+        total: Number(item.total || 0)
+      }))
+      .filter((item) => item.product_name);
+  }
   return String(productos || '')
     .split('\n')
     .map((line) => line.trim())

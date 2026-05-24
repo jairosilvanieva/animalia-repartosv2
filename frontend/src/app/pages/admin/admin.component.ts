@@ -69,6 +69,7 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
         <button class="order-main" type="button" (click)="openEdit(order)">
           <span class="order-title">#{{ order.id }} {{ order.customer_name }}</span>
           <span>{{ order.address }}</span>
+          <small class="product-line" *ngIf="productSummary(order)">{{ productSummary(order) }}</small>
           <small>
             Base Sarmiento 2790 - {{ order.payment_method || 'Sin pago' }} -
             {{ statusLabel(order.status) }}
@@ -136,9 +137,21 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
             <label>Importe a cobrar <input type="number" name="amount_to_collect" [(ngModel)]="editModel.amount_to_collect" /></label>
           </div>
 
-          <label>Productos
-            <textarea rows="5" name="edit_products" [(ngModel)]="editProducts" placeholder="Un producto por renglon"></textarea>
-          </label>
+          <div class="product-editor">
+            <div class="product-editor-head">
+              <strong>Productos</strong>
+              <button type="button" class="secondary" (click)="addEditItem()">Agregar producto</button>
+            </div>
+            <div class="product-row" *ngFor="let item of editItems; let i = index">
+              <label>Cantidad
+                <input type="number" min="1" step="1" [name]="'edit_item_qty_' + i" [(ngModel)]="item.quantity" />
+              </label>
+              <label>Producto
+                <input [name]="'edit_item_name_' + i" [(ngModel)]="item.product_name" />
+              </label>
+              <button type="button" class="remove" (click)="removeEditItem(i)" [disabled]="editItems.length === 1">Eliminar</button>
+            </div>
+          </div>
 
           <label>Observaciones internas
             <textarea rows="4" name="internal_notes" [(ngModel)]="editModel.internal_notes"></textarea>
@@ -179,6 +192,10 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
       letter-spacing: .2px;
     }
     .hero p, small, .route-bar span { color: var(--gris); font-weight: 600; }
+    .product-line {
+      color: var(--texto);
+      font-weight: 800;
+    }
     .eyebrow {
       color: var(--rojo);
       font-size: 10px;
@@ -369,6 +386,36 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
       border-color: var(--rojo);
       color: #fff;
     }
+    .product-editor {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1.5px solid var(--gris-l);
+      background: #f8fafc;
+    }
+    .product-editor-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .product-editor strong {
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .product-row {
+      display: grid;
+      grid-template-columns: 84px 1fr auto;
+      gap: 8px;
+      align-items: end;
+    }
+    .product-row .remove {
+      background: #fff;
+      border: 1.5px solid var(--gris-l);
+      color: var(--rojo);
+      padding: 10px 12px;
+    }
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -403,6 +450,7 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
     @media (max-width: 760px) {
       .hero, .route-bar { align-items: stretch; flex-direction: column; }
       .toolbar, .form-grid { grid-template-columns: 1fr; }
+      .product-row { grid-template-columns: 1fr; }
       .quick-filters span { margin-left: 0; width: 100%; }
       .order { grid-template-columns: 10px 24px 1fr; }
       .right { grid-column: 3; justify-items: start; }
@@ -418,7 +466,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   selected = new Set<number>();
   filters = { date: new Date().toISOString().slice(0, 10), status: '', search: '' };
   editModel: Partial<Order> = {};
-  editProducts = '';
+  editItems: Array<{ product_name: string; quantity: number }> = [this.emptyItem()];
   paymentMethods = PAYMENT_METHODS;
   quickFilters = [
     { label: 'Todos activos', value: '' },
@@ -502,7 +550,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   closeEdit() {
     this.editing.set(null);
     this.editModel = {};
-    this.editProducts = '';
+    this.editItems = [this.emptyItem()];
   }
 
   saveEdit() {
@@ -524,6 +572,15 @@ export class AdminComponent implements OnInit, OnDestroy {
   whatsappUrl(order: Partial<Order>) {
     const message = `Hola ${order.customer_name || ''}, somos de Animalia. Te escribimos por tu pedido.`;
     return `https://wa.me/${this.cleanPhone(order.phone || '')}?text=${encodeURIComponent(message)}`;
+  }
+
+  productSummary(order: Order) {
+    if (!order.products_summary) return '';
+    const summary = order.products_summary.length > 90
+      ? `${order.products_summary.slice(0, 90)}...`
+      : order.products_summary;
+    const count = Number(order.items_count || 0);
+    return count > 1 ? `${count} productos: ${summary}` : summary;
   }
 
   statusLabel(status?: string) {
@@ -558,15 +615,36 @@ export class AdminComponent implements OnInit, OnDestroy {
       time_window_start: this.shortTime(order.time_window_start),
       time_window_end: this.shortTime(order.time_window_end)
     };
-    this.editProducts = (order.items || []).map((item) => item.product_name).join('\n');
+    this.editItems = (order.items || []).length
+      ? (order.items || []).map((item) => ({
+        product_name: item.product_name,
+        quantity: Number(item.quantity || 1)
+      }))
+      : [this.emptyItem()];
   }
 
   private productsPayload() {
-    return this.editProducts
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((product_name) => ({ product_name, quantity: 1, unit_price: 0, total: 0 }));
+    return this.editItems
+      .map((item) => ({
+        product_name: String(item.product_name || '').trim(),
+        quantity: Number(item.quantity || 1),
+        unit_price: 0,
+        total: 0
+      }))
+      .filter((item) => item.product_name);
+  }
+
+  addEditItem() {
+    this.editItems = [...this.editItems, this.emptyItem()];
+  }
+
+  removeEditItem(index: number) {
+    if (this.editItems.length === 1) return;
+    this.editItems = this.editItems.filter((_, itemIndex) => itemIndex !== index);
+  }
+
+  private emptyItem() {
+    return { product_name: '', quantity: 1 };
   }
 
   private cleanPhone(value: string) {

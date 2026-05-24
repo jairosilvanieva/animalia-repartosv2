@@ -21,6 +21,8 @@ export interface Order {
   time_window_start?: string;
   time_window_end?: string;
   priority: boolean;
+  items_count?: number;
+  products_summary?: string;
   items?: OrderItem[];
 }
 
