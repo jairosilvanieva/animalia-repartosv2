@@ -166,6 +166,7 @@ export async function updateOrder(id, payload) {
 
   const existing = await getOrder(id);
   if (!existing) return null;
+  const shouldUpdateItems = Object.prototype.hasOwnProperty.call(payload, 'items');
 
   if (payload.address && payload.address !== existing.address && !payload.latitude && !payload.longitude) {
     const geocoded = await geocodeAddress(payload.address);
@@ -176,10 +177,34 @@ export async function updateOrder(id, payload) {
   }
 
   const fields = allowed.filter((field) => Object.prototype.hasOwnProperty.call(payload, field));
-  if (!fields.length) return getOrder(id);
+  if (!fields.length && !shouldUpdateItems) return getOrder(id);
 
-  const setSql = fields.map((field) => `${field} = :${field}`).join(', ');
-  await pool.execute(`UPDATE orders SET ${setSql} WHERE id = :id`, { ...payload, id });
+  await withTransaction(async (connection) => {
+    if (fields.length) {
+      const setSql = fields.map((field) => `${field} = :${field}`).join(', ');
+      await connection.execute(`UPDATE orders SET ${setSql} WHERE id = :id`, cleanParams({ ...payload, id }));
+    }
+
+    if (shouldUpdateItems) {
+      const items = normalizeManualItems(payload.items);
+      await connection.execute('DELETE FROM order_items WHERE order_id = :id', { id });
+
+      for (const item of items) {
+        await connection.execute(
+          `INSERT INTO order_items (order_id, product_name, quantity, unit_price, total)
+           VALUES (:orderId, :productName, :quantity, :unitPrice, :total)`,
+          {
+            orderId: id,
+            productName: item.product_name,
+            quantity: Number(item.quantity || 1),
+            unitPrice: Number(item.unit_price || 0),
+            total: Number(item.total || 0)
+          }
+        );
+      }
+    }
+  });
+
   return getOrder(id);
 }
 

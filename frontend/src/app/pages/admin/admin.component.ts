@@ -98,13 +98,35 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
             <button class="icon" type="button" (click)="closeEdit()">X</button>
           </div>
 
-            <div class="form-grid">
+          <div class="status-actions">
+            <button type="button" *ngFor="let status of editStatuses" [class.active]="editModel.status === status.value" (click)="editModel.status = status.value">
+              {{ status.label }}
+            </button>
+          </div>
+
+          <div class="section-title"><span>Entrega</span><hr /></div>
+          <div class="form-grid">
             <label>Fecha de reparto <input type="date" name="scheduled_delivery_date" [(ngModel)]="editModel.scheduled_delivery_date" /></label>
+            <label>Domicilio <input name="address" [(ngModel)]="editModel.address" /></label>
+            <label>Entre calles <input name="between_streets" [(ngModel)]="editModel.between_streets" /></label>
+            <label>Desde <input type="time" name="time_window_start" [(ngModel)]="editModel.time_window_start" /></label>
+            <label>Hasta <input type="time" name="time_window_end" [(ngModel)]="editModel.time_window_end" /></label>
+          </div>
+
+          <div class="section-title"><span>Cliente</span><hr /></div>
+          <div class="form-grid">
             <label>Cliente <input name="customer_name" [(ngModel)]="editModel.customer_name" /></label>
             <label>Telefono <input name="phone" [(ngModel)]="editModel.phone" /></label>
             <label>DNI <input name="dni" [(ngModel)]="editModel.dni" /></label>
-            <label>Domicilio <input name="address" [(ngModel)]="editModel.address" /></label>
-            <label>Entre calles <input name="between_streets" [(ngModel)]="editModel.between_streets" /></label>
+          </div>
+
+          <div class="contact-actions" *ngIf="editModel.phone">
+            <a [href]="'tel:' + editModel.phone">Llamar</a>
+            <a [href]="whatsappUrl(editModel)" target="_blank">WhatsApp</a>
+          </div>
+
+          <div class="section-title"><span>Pedido y pago</span><hr /></div>
+          <div class="form-grid">
             <label>Forma de pago
               <select name="payment_method" [(ngModel)]="editModel.payment_method">
                 <option value="">Sin definir</option>
@@ -112,18 +134,11 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
               </select>
             </label>
             <label>Importe a cobrar <input type="number" name="amount_to_collect" [(ngModel)]="editModel.amount_to_collect" /></label>
-            <label>Estado
-              <select name="status" [(ngModel)]="editModel.status">
-                <option value="pendiente">Pendiente</option>
-                <option value="en_camino">En camino</option>
-                <option value="entregado">Entregado</option>
-                <option value="no_entregado">No entregado</option>
-                <option value="cancelado">Cancelado</option>
-              </select>
-            </label>
-            <label>Desde <input type="time" name="time_window_start" [(ngModel)]="editModel.time_window_start" /></label>
-            <label>Hasta <input type="time" name="time_window_end" [(ngModel)]="editModel.time_window_end" /></label>
           </div>
+
+          <label>Productos
+            <textarea rows="5" name="edit_products" [(ngModel)]="editProducts" placeholder="Un producto por renglon"></textarea>
+          </label>
 
           <label>Observaciones internas
             <textarea rows="4" name="internal_notes" [(ngModel)]="editModel.internal_notes"></textarea>
@@ -313,6 +328,47 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
       font-size: 22px;
       font-weight: 900;
     }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+    .section-title span {
+      background: var(--rojo);
+      color: #fff;
+      border-radius: 5px;
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .section-title hr {
+      flex: 1;
+      border: 0;
+      border-top: 2px solid var(--gris-l);
+    }
+    .status-actions, .contact-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .status-actions button, .contact-actions a {
+      border-radius: 8px;
+      border: 1.5px solid var(--gris-l);
+      background: #f8fafc;
+      color: var(--texto);
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 900;
+      text-decoration: none;
+    }
+    .status-actions button.active {
+      background: var(--rojo);
+      border-color: var(--rojo);
+      color: #fff;
+    }
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -362,6 +418,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   selected = new Set<number>();
   filters = { date: new Date().toISOString().slice(0, 10), status: '', search: '' };
   editModel: Partial<Order> = {};
+  editProducts = '';
   paymentMethods = PAYMENT_METHODS;
   quickFilters = [
     { label: 'Todos activos', value: '' },
@@ -369,6 +426,13 @@ export class AdminComponent implements OnInit, OnDestroy {
     { label: 'En camino', value: 'en_camino' },
     { label: 'No entregados', value: 'no_entregado' },
     { label: 'Finalizados', value: 'finalizados' }
+  ];
+  editStatuses = [
+    { label: 'Pendiente', value: 'pendiente' },
+    { label: 'En camino', value: 'en_camino' },
+    { label: 'Entregado', value: 'entregado' },
+    { label: 'No entregado', value: 'no_entregado' },
+    { label: 'Cancelado', value: 'cancelado' }
   ];
   private refreshTimer?: number;
 
@@ -428,17 +492,17 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   openEdit(order: Order) {
     this.editing.set(order);
-    this.editModel = {
-      ...order,
-      scheduled_delivery_date: this.dateOnly(order.scheduled_delivery_date) || this.filters.date,
-      time_window_start: this.shortTime(order.time_window_start),
-      time_window_end: this.shortTime(order.time_window_end)
-    };
+    this.prepareEdit(order);
+    this.api.getOrder(order.id).subscribe((fullOrder) => {
+      this.editing.set(fullOrder);
+      this.prepareEdit(fullOrder);
+    });
   }
 
   closeEdit() {
     this.editing.set(null);
     this.editModel = {};
+    this.editProducts = '';
   }
 
   saveEdit() {
@@ -448,12 +512,18 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.api.updateOrder(order.id, {
       ...this.editModel,
       amount_to_collect: Number(this.editModel.amount_to_collect || 0),
+      items: this.productsPayload(),
       store_id: 2,
       time_condition: ''
     }).subscribe(() => {
       this.closeEdit();
       this.load();
     });
+  }
+
+  whatsappUrl(order: Partial<Order>) {
+    const message = `Hola ${order.customer_name || ''}, somos de Animalia. Te escribimos por tu pedido.`;
+    return `https://wa.me/${this.cleanPhone(order.phone || '')}?text=${encodeURIComponent(message)}`;
   }
 
   statusLabel(status?: string) {
@@ -479,6 +549,31 @@ export class AdminComponent implements OnInit, OnDestroy {
   deliveryDateLabel(order: Order) {
     const value = this.dateOnly(order.scheduled_delivery_date);
     return value ? `Reparto: ${value}` : `Reparto: ${this.filters.date}`;
+  }
+
+  private prepareEdit(order: Order) {
+    this.editModel = {
+      ...order,
+      scheduled_delivery_date: this.dateOnly(order.scheduled_delivery_date) || this.filters.date,
+      time_window_start: this.shortTime(order.time_window_start),
+      time_window_end: this.shortTime(order.time_window_end)
+    };
+    this.editProducts = (order.items || []).map((item) => item.product_name).join('\n');
+  }
+
+  private productsPayload() {
+    return this.editProducts
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((product_name) => ({ product_name, quantity: 1, unit_price: 0, total: 0 }));
+  }
+
+  private cleanPhone(value: string) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (digits.startsWith('54')) return digits;
+    if (digits.startsWith('0')) return `54${digits.slice(1)}`;
+    return `54${digits}`;
   }
 
   private shortTime(value?: string) {

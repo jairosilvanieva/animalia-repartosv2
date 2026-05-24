@@ -21,6 +21,15 @@ export interface Order {
   time_window_start?: string;
   time_window_end?: string;
   priority: boolean;
+  items?: OrderItem[];
+}
+
+export interface OrderItem {
+  id?: number;
+  product_name: string;
+  quantity?: number;
+  unit_price?: number;
+  total?: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -39,6 +48,10 @@ export class ApiService {
 
   createManualOrder(payload: unknown) {
     return this.http.post<Order>(`${this.baseUrl}/orders/manual`, payload);
+  }
+
+  getOrder(id: number) {
+    return this.http.get<Order>(`${this.baseUrl}/orders/${id}`);
   }
 
   updateOrder(id: number, payload: Partial<Order> & Record<string, unknown>) {
