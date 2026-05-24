@@ -1,7 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ApiService, Order } from '../../core/api.service';
+import { PAYMENT_METHODS } from '../../shared/payment-methods';
 
 @Component({
   selector: 'app-admin',
@@ -12,8 +14,8 @@ import { ApiService, Order } from '../../core/api.service';
       <div class="hero">
         <div>
           <span class="eyebrow">Operacion diaria</span>
-          <h1>Pedidos del dia</h1>
-          <p>Filtra por fecha de reparto, corrige pedidos y arma tandas chicas para la camioneta.</p>
+          <h1>Pedidos ordenados por cercania al local</h1>
+          <p>Primero ves los mas cercanos a Sarmiento 2790. La lista se actualiza sola.</p>
         </div>
         <button (click)="load()">Actualizar</button>
       </div>
@@ -24,9 +26,8 @@ import { ApiService, Order } from '../../core/api.service';
           <select [(ngModel)]="filters.status">
             <option value="">Activos</option>
             <option value="pendiente">Pendiente</option>
-            <option value="en_preparacion">En preparacion</option>
-            <option value="listo_para_repartir">Listo para repartir</option>
             <option value="en_camino">En camino</option>
+            <option value="no_entregado">No entregado</option>
             <option value="finalizados">Finalizados</option>
           </select>
         </label>
@@ -39,19 +40,18 @@ import { ApiService, Order } from '../../core/api.service';
           <span>Marca solo los pedidos que salen en esta tanda. Podes armar varias rutas en el dia.</span>
         </div>
         <button [disabled]="!selected.size" (click)="createRoute()">Armar ruta recomendada</button>
-        <a *ngIf="route()" [href]="mapsRouteUrl(route())" target="_blank">Ver ruta en Maps</a>
-        <a *ngIf="routeId()" [href]="'/chofer/' + routeId()">Abrir vista chofer</a>
         <span class="message" *ngIf="message()">{{ message() }}</span>
       </div>
 
-      <article class="order" *ngFor="let order of orders()" [class.priority]="order.priority">
+      <article class="order" *ngFor="let order of orders()" [class.priority]="order.priority" [ngClass]="'status-' + order.status">
+        <span class="status-dot" [class]="'status-dot dot-' + order.status"></span>
         <input type="checkbox" [checked]="selected.has(order.id)" (change)="toggle(order.id)" />
         <button class="order-main" type="button" (click)="openEdit(order)">
           <span class="order-title">#{{ order.id }} {{ order.customer_name }}</span>
           <span>{{ order.address }}</span>
           <small>
             Base Sarmiento 2790 - {{ order.payment_method || 'Sin pago' }} -
-            {{ paymentLabel(order.payment_status) }} - {{ order.status }}
+            {{ statusLabel(order.status) }}
           </small>
           <small>
             {{ deliveryDateLabel(order) }} - Horario: {{ timeLabel(order) }}
@@ -59,8 +59,7 @@ import { ApiService, Order } from '../../core/api.service';
         </button>
         <div class="right">
           <div class="amount">$ {{ order.amount_to_collect || 0 }}</div>
-          <span class="badge" [class.ready]="order.status === 'listo_para_repartir'">{{ order.status }}</span>
-          <button class="secondary" *ngIf="order.status !== 'listo_para_repartir'" (click)="markReady(order)">Listo</button>
+          <span class="badge">{{ statusLabel(order.status) }}</span>
         </div>
       </article>
 
@@ -82,24 +81,20 @@ import { ApiService, Order } from '../../core/api.service';
             <label>DNI <input name="dni" [(ngModel)]="editModel.dni" /></label>
             <label>Domicilio <input name="address" [(ngModel)]="editModel.address" /></label>
             <label>Entre calles <input name="between_streets" [(ngModel)]="editModel.between_streets" /></label>
-            <label>Forma de pago <input name="payment_method" [(ngModel)]="editModel.payment_method" /></label>
-            <label>Pago
-              <select name="payment_status" [(ngModel)]="editModel.payment_status">
-                <option value="cobrado">Cobrado</option>
-                <option value="a_cobrar">A cobrar</option>
-                <option value="corroborar_pago">Corroborar pago</option>
+            <label>Forma de pago
+              <select name="payment_method" [(ngModel)]="editModel.payment_method">
+                <option value="">Sin definir</option>
+                <option *ngFor="let method of paymentMethods" [value]="method">{{ method }}</option>
               </select>
             </label>
             <label>Importe a cobrar <input type="number" name="amount_to_collect" [(ngModel)]="editModel.amount_to_collect" /></label>
             <label>Estado
               <select name="status" [(ngModel)]="editModel.status">
                 <option value="pendiente">Pendiente</option>
-                <option value="en_preparacion">En preparacion</option>
-                <option value="listo_para_repartir">Listo para repartir</option>
                 <option value="en_camino">En camino</option>
                 <option value="entregado">Entregado</option>
-                <option value="cancelado">Cancelado</option>
                 <option value="no_entregado">No entregado</option>
+                <option value="cancelado">Cancelado</option>
               </select>
             </label>
             <label>Desde <input type="time" name="time_window_start" [(ngModel)]="editModel.time_window_start" /></label>
@@ -169,13 +164,29 @@ import { ApiService, Order } from '../../core/api.service';
     .route-bar div { display: grid; gap: 2px; }
     .order {
       display: grid;
-      grid-template-columns: 24px 1fr auto;
+      grid-template-columns: 10px 24px 1fr auto;
       gap: 10px;
       align-items: center;
       padding: 8px 12px;
       border-left: 5px solid transparent;
     }
     .order.priority { border-left-color: var(--naranja); }
+    .order.status-pendiente { background: #fffaf0; }
+    .order.status-en_camino { background: #eff6ff; }
+    .order.status-entregado { background: #f0fdf4; }
+    .order.status-no_entregado { background: #fefce8; }
+    .order.status-cancelado { background: #fef2f2; }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: block;
+    }
+    .dot-pendiente { background: var(--naranja); }
+    .dot-en_camino { background: #38bdf8; }
+    .dot-entregado { background: #22c55e; }
+    .dot-no_entregado { background: #eab308; }
+    .dot-cancelado { background: var(--rojo); }
     .order-main {
       display: grid;
       gap: 1px;
@@ -203,10 +214,6 @@ import { ApiService, Order } from '../../core/api.service';
       color: #374151;
       font-size: 10px;
       font-weight: 800;
-    }
-    .badge.ready {
-      background: #fef3c7;
-      color: #92400e;
     }
     a {
       color: var(--rojo);
@@ -284,12 +291,12 @@ import { ApiService, Order } from '../../core/api.service';
     @media (max-width: 760px) {
       .hero, .route-bar { align-items: stretch; flex-direction: column; }
       .toolbar, .form-grid { grid-template-columns: 1fr; }
-      .order { grid-template-columns: 24px 1fr; }
-      .right { grid-column: 2; justify-items: start; }
+      .order { grid-template-columns: 10px 24px 1fr; }
+      .right { grid-column: 3; justify-items: start; }
     }
   `]
 })
-export class AdminComponent implements OnInit {
+export class AdminComponent implements OnInit, OnDestroy {
   orders = signal<Order[]>([]);
   routeId = signal<number | null>(null);
   route = signal<any>(null);
@@ -298,20 +305,31 @@ export class AdminComponent implements OnInit {
   selected = new Set<number>();
   filters = { date: new Date().toISOString().slice(0, 10), status: '' };
   editModel: Partial<Order> = {};
+  paymentMethods = PAYMENT_METHODS;
+  private refreshTimer?: number;
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private router: Router) {}
 
   ngOnInit() {
     this.load();
+    this.refreshTimer = window.setInterval(() => this.load(false), 30000);
   }
 
-  load() {
+  ngOnDestroy() {
+    if (this.refreshTimer) window.clearInterval(this.refreshTimer);
+  }
+
+  load(clearRoute = true) {
     this.api.listOrders(this.filters).subscribe((orders) => {
       this.orders.set(orders);
       const visible = new Set(orders.map((order) => order.id));
       this.selected.forEach((id) => {
         if (!visible.has(id)) this.selected.delete(id);
       });
+      if (clearRoute) {
+        this.routeId.set(null);
+        this.route.set(null);
+      }
     });
   }
 
@@ -331,15 +349,12 @@ export class AdminComponent implements OnInit {
         this.routeId.set(route.id);
         this.route.set(route);
         this.message.set('');
+        this.router.navigateByUrl(`/ruta/${route.id}`);
       },
       error: (error) => {
         this.message.set(error.error?.error || 'No se pudo armar la ruta.');
       }
     });
-  }
-
-  markReady(order: Order) {
-    this.api.updateOrder(order.id, { status: 'listo_para_repartir' }).subscribe(() => this.load());
   }
 
   openEdit(order: Order) {
@@ -372,10 +387,15 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  paymentLabel(status?: string) {
-    if (status === 'cobrado') return 'cobrado';
-    if (status === 'corroborar_pago') return 'corroborar pago';
-    return 'a cobrar';
+  statusLabel(status?: string) {
+    const labels: Record<string, string> = {
+      pendiente: 'Pendiente',
+      en_camino: 'En camino',
+      entregado: 'Entregado',
+      no_entregado: 'No entregado',
+      cancelado: 'Cancelado'
+    };
+    return labels[status || ''] || status || 'Sin estado';
   }
 
   timeLabel(order: Order) {
@@ -390,25 +410,6 @@ export class AdminComponent implements OnInit {
   deliveryDateLabel(order: Order) {
     const value = this.dateOnly(order.scheduled_delivery_date);
     return value ? `Reparto: ${value}` : `Reparto: ${this.filters.date}`;
-  }
-
-  mapsRouteUrl(route: any) {
-    const stops = route?.stops || [];
-    const origin = 'Sarmiento 2790, Mar del Plata, Buenos Aires';
-    const destination = stops.length ? this.mapsAddress(stops[stops.length - 1].address) : origin;
-    const waypoints = stops.slice(0, -1).map((stop: any) => this.mapsAddress(stop.address)).join('|');
-    const params = new URLSearchParams({
-      api: '1',
-      origin,
-      destination,
-      travelmode: 'driving'
-    });
-    if (waypoints) params.set('waypoints', waypoints);
-    return `https://www.google.com/maps/dir/?${params.toString()}`;
-  }
-
-  private mapsAddress(address: string) {
-    return `${address}, Mar del Plata, Buenos Aires`;
   }
 
   private shortTime(value?: string) {

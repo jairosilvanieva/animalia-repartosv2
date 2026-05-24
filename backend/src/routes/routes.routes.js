@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth.js';
-import { createRoute, getRoute, startRoute, updateStop } from '../services/routeService.js';
+import { createRoute, getRoute, listRoutes, startRoute, updateStop } from '../services/routeService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
@@ -16,6 +16,13 @@ const createRouteSchema = z.object({
 router.post('/', authenticate, asyncHandler(async (req, res) => {
   const input = createRouteSchema.parse(req.body);
   res.status(201).json(await createRoute(input));
+}));
+
+router.get('/', authenticate, asyncHandler(async (req, res) => {
+  res.json(await listRoutes({
+    route_date: req.query.route_date,
+    status: req.query.status
+  }));
 }));
 
 router.get('/:id', authenticate, asyncHandler(async (req, res) => {

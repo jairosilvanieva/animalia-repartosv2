@@ -14,7 +14,6 @@ export interface Order {
   customer_note?: string;
   internal_notes?: string;
   payment_method?: string;
-  payment_status?: string;
   amount_to_collect: number;
   delivery_mode?: string;
   status: string;
@@ -48,6 +47,14 @@ export class ApiService {
 
   createRoute(payload: { route_date: string; order_ids: number[]; name?: string }) {
     return this.http.post<any>(`${this.baseUrl}/routes`, payload);
+  }
+
+  listRoutes(filters: Record<string, string> = {}) {
+    let params = new HttpParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params = params.set(key, value);
+    });
+    return this.http.get<any[]>(`${this.baseUrl}/routes`, { params });
   }
 
   getRoute(routeId: string) {

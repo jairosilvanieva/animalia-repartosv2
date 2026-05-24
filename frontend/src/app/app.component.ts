@@ -16,6 +16,7 @@ import { AuthService } from './core/auth.service';
       <nav>
         <a routerLink="/">Pedidos</a>
         <a routerLink="/cargar">Carga manual</a>
+        <a routerLink="/chofer">Vista chofer</a>
         <a routerLink="/login" *ngIf="!auth.user()">Ingresar</a>
         <button class="secondary" *ngIf="auth.user()" (click)="auth.logout()">Salir</button>
       </nav>

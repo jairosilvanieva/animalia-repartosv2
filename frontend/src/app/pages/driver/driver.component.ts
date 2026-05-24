@@ -9,15 +9,18 @@ import { ApiService } from '../../core/api.service';
   imports: [CommonModule],
   template: `
     <section class="grid" *ngIf="route() as currentRoute">
+      <div class="panel locked" *ngIf="currentRoute.status !== 'activa'; else activeRoute">
+        <h1>Ruta no cargada a camioneta</h1>
+        <p>Esta tanda todavia esta preparada en administracion. Cuando el local toque “Ruta cargada a camioneta”, el chofer va a poder verla desde aca.</p>
+      </div>
+
+      <ng-template #activeRoute>
       <div class="panel route-head">
         <div>
           <h1>{{ currentRoute.name }}</h1>
           <p>{{ currentRoute.route_date }} - {{ currentRoute.status }}</p>
         </div>
-        <div class="head-actions">
-          <a [href]="mapsRouteUrl(currentRoute)" target="_blank">Ver ruta en Maps</a>
-          <button (click)="start(currentRoute.id)">Poner en camino</button>
-        </div>
+        <a [href]="mapsRouteUrl(currentRoute)" target="_blank">Ver ruta en Maps</a>
       </div>
 
       <article class="stop" *ngFor="let stop of currentRoute.stops">
@@ -37,10 +40,10 @@ import { ApiService } from '../../core/api.service';
           <div class="buttons">
             <button (click)="mark(currentRoute.id, stop.id, 'entregado')">Entregado</button>
             <button class="danger" (click)="mark(currentRoute.id, stop.id, 'no_entregado')">No entregado</button>
-            <button class="secondary" (click)="mark(currentRoute.id, stop.id, 'problema', 'Revisar con administracion')">Avisar problema</button>
           </div>
         </div>
       </article>
+      </ng-template>
     </section>
   `,
   styles: [`
@@ -51,11 +54,6 @@ import { ApiService } from '../../core/api.service';
       justify-content: space-between;
       align-items: center;
       gap: 1rem;
-    }
-    .head-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: .5rem;
     }
     .stop {
       display: grid;
@@ -76,10 +74,7 @@ import { ApiService } from '../../core/api.service';
       color: white;
       font-weight: 800;
     }
-    .details {
-      display: grid;
-      gap: 0.3rem;
-    }
+    .details { display: grid; gap: 0.3rem; }
     .actions, .buttons {
       display: flex;
       flex-wrap: wrap;
@@ -110,12 +105,8 @@ export class DriverComponent implements OnInit {
     this.api.getRoute(routeId).subscribe((route) => this.route.set(route));
   }
 
-  start(routeId: number) {
-    this.api.startRoute(routeId).subscribe((route) => this.route.set(route));
-  }
-
-  mark(routeId: number, stopId: number, status: string, note?: string) {
-    this.api.updateStop(routeId, stopId, status, note).subscribe((route) => this.route.set(route));
+  mark(routeId: number, stopId: number, status: string) {
+    this.api.updateStop(routeId, stopId, status).subscribe((route) => this.route.set(route));
   }
 
   mapsRouteUrl(route: any) {
@@ -123,12 +114,7 @@ export class DriverComponent implements OnInit {
     const origin = 'Sarmiento 2790, Mar del Plata, Buenos Aires';
     const destination = stops.length ? this.mapsAddress(stops[stops.length - 1].address) : origin;
     const waypoints = stops.slice(0, -1).map((stop: any) => this.mapsAddress(stop.address)).join('|');
-    const params = new URLSearchParams({
-      api: '1',
-      origin,
-      destination,
-      travelmode: 'driving'
-    });
+    const params = new URLSearchParams({ api: '1', origin, destination, travelmode: 'driving' });
     if (waypoints) params.set('waypoints', waypoints);
     return `https://www.google.com/maps/dir/?${params.toString()}`;
   }

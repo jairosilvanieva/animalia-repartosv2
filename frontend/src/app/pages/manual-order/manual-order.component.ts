@@ -1,11 +1,13 @@
+import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
+import { PAYMENT_METHODS } from '../../shared/payment-methods';
 
 @Component({
   selector: 'app-manual-order',
   standalone: true,
-  imports: [FormsModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <form class="manual" (ngSubmit)="save()">
       <div class="form-head">
@@ -27,13 +29,20 @@ import { ApiService } from '../../core/api.service';
 
       <div class="section-title"><span>Pedido y pago</span><hr /></div>
       <div class="grid two">
-        <label>Forma de pago <input name="forma_pago" [(ngModel)]="model.forma_pago" /></label>
+        <label>Forma de pago
+          <select name="forma_pago" [(ngModel)]="model.forma_pago">
+            <option value="">Sin definir</option>
+            <option *ngFor="let method of paymentMethods" [value]="method">{{ method }}</option>
+          </select>
+        </label>
         <label>Importe a cobrar <input type="number" name="importe_a_cobrar" [(ngModel)]="model.importe_a_cobrar" /></label>
         <label>Estado
           <select name="estado" [(ngModel)]="model.estado">
             <option value="pendiente">Pendiente</option>
-            <option value="en_preparacion">En preparacion</option>
-            <option value="listo_para_repartir">Listo para repartir</option>
+            <option value="en_camino">En camino</option>
+            <option value="entregado">Entregado</option>
+            <option value="no_entregado">No entregado</option>
+            <option value="cancelado">Cancelado</option>
           </select>
         </label>
       </div>
@@ -109,6 +118,7 @@ import { ApiService } from '../../core/api.service';
 })
 export class ManualOrderComponent {
   message = '';
+  paymentMethods = PAYMENT_METHODS;
   model = {
     cliente: '',
     fecha_reparto: new Date().toISOString().slice(0, 10),

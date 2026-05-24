@@ -5,6 +5,9 @@ const ORDER_COLUMNS = `
   o.*, s.name AS store_name
 `;
 
+const BASE_LAT = -38.0089;
+const BASE_LON = -57.5502;
+
 export async function listOrders(filters = {}) {
   const where = [];
   const params = {};
@@ -14,12 +17,12 @@ export async function listOrders(filters = {}) {
     params.date = filters.date;
   }
   if (filters.status === 'finalizados') {
-    where.push("o.status IN ('entregado', 'cancelado', 'no_entregado')");
+    where.push("o.status IN ('entregado', 'cancelado')");
   } else if (filters.status) {
     where.push('o.status = :status');
     params.status = filters.status;
   } else {
-    where.push("o.status NOT IN ('entregado', 'cancelado', 'no_entregado')");
+    where.push("o.status NOT IN ('entregado', 'cancelado')");
   }
   if (filters.store_id) {
     where.push('o.store_id = :storeId');
@@ -35,7 +38,14 @@ export async function listOrders(filters = {}) {
     FROM orders o
     LEFT JOIN stores s ON s.id = o.store_id
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-    ORDER BY o.priority DESC, o.time_window_start IS NULL, o.time_window_start ASC, o.order_date DESC, o.id DESC
+    ORDER BY
+      o.priority DESC,
+      CASE WHEN o.latitude IS NULL OR o.longitude IS NULL THEN 1 ELSE 0 END,
+      POW(o.latitude - ${BASE_LAT}, 2) + POW(o.longitude - ${BASE_LON}, 2),
+      o.time_window_start IS NULL,
+      o.time_window_start ASC,
+      o.order_date DESC,
+      o.id DESC
   `;
 
   const [rows] = await pool.execute(sql, params);

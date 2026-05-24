@@ -18,7 +18,7 @@ export async function createRoute(payload) {
     `SELECT * FROM orders WHERE id IN (?) ORDER BY priority DESC, time_window_start ASC, order_date ASC`,
     [orderIds]
   );
-  const eligible = orders.filter((order) => order.status === 'listo_para_repartir');
+  const eligible = orders.filter((order) => ['pendiente', 'no_entregado'].includes(order.status));
 
   if (!eligible.length) {
     const error = new Error('No hay pedidos aptos para repartir.');
@@ -54,6 +54,33 @@ export async function createRoute(payload) {
   return getRoute(routeId);
 }
 
+export async function listRoutes(filters = {}) {
+  const params = {};
+  const where = [];
+
+  if (filters.route_date) {
+    where.push('dr.route_date = :routeDate');
+    params.routeDate = filters.route_date;
+  }
+
+  if (filters.status) {
+    where.push('dr.status = :status');
+    params.status = filters.status;
+  }
+
+  const [routes] = await pool.execute(
+    `SELECT dr.*, COUNT(rs.id) AS stops_count
+     FROM delivery_routes dr
+     LEFT JOIN route_stops rs ON rs.route_id = dr.id
+     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+     GROUP BY dr.id
+     ORDER BY dr.created_at DESC, dr.id DESC`,
+    params
+  );
+
+  return routes;
+}
+
 export async function getRoute(id) {
   const [routes] = await pool.execute('SELECT * FROM delivery_routes WHERE id = :id', { id });
   if (!routes.length) return null;
@@ -86,7 +113,7 @@ export async function startRoute(id) {
       `UPDATE orders o
        JOIN route_stops rs ON rs.order_id = o.id
        SET o.status = 'en_camino'
-       WHERE rs.route_id = :id AND o.status = 'listo_para_repartir'`,
+       WHERE rs.route_id = :id AND o.status IN ('pendiente', 'no_entregado')`,
       { id }
     );
   });
@@ -96,7 +123,7 @@ export async function startRoute(id) {
 
 export async function updateStop(routeId, stopId, payload) {
   const status = payload.status;
-  const allowed = ['pendiente', 'en_camino', 'entregado', 'no_entregado', 'problema'];
+  const allowed = ['pendiente', 'en_camino', 'entregado', 'no_entregado'];
   if (!allowed.includes(status)) {
     const error = new Error('Estado de parada invalido.');
     error.status = 400;
