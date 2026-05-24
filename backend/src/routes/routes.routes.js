@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth.js';
-import { createRoute, getRoute, updateStop } from '../services/routeService.js';
+import { createRoute, getRoute, startRoute, updateStop } from '../services/routeService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
@@ -20,6 +20,12 @@ router.post('/', authenticate, asyncHandler(async (req, res) => {
 
 router.get('/:id', authenticate, asyncHandler(async (req, res) => {
   const route = await getRoute(Number(req.params.id));
+  if (!route) return res.status(404).json({ error: 'Ruta no encontrada.' });
+  return res.json(route);
+}));
+
+router.post('/:id/start', authenticate, asyncHandler(async (req, res) => {
+  const route = await startRoute(Number(req.params.id));
   if (!route) return res.status(404).json({ error: 'Ruta no encontrada.' });
   return res.json(route);
 }));

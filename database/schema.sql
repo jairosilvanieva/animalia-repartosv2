@@ -30,6 +30,7 @@ CREATE TABLE orders (
   woocommerce_order_id BIGINT NULL,
   order_number VARCHAR(80) NULL,
   order_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  scheduled_delivery_date DATE NOT NULL,
   customer_name VARCHAR(160) NOT NULL,
   phone VARCHAR(80) NULL,
   dni VARCHAR(40) NULL,
@@ -47,6 +48,8 @@ CREATE TABLE orders (
   total DECIMAL(12, 2) NOT NULL DEFAULT 0,
   delivery_mode VARCHAR(120) NULL,
   time_condition VARCHAR(120) NULL,
+  time_window_start TIME NULL,
+  time_window_end TIME NULL,
   priority BOOLEAN NOT NULL DEFAULT FALSE,
   status ENUM('pendiente', 'en_preparacion', 'listo_para_repartir', 'en_camino', 'entregado', 'cancelado', 'no_entregado') NOT NULL DEFAULT 'pendiente',
   woocommerce_status VARCHAR(80) NULL,
@@ -56,7 +59,7 @@ CREATE TABLE orders (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_orders_woocommerce_order_id (woocommerce_order_id),
-  INDEX idx_orders_date_status (order_date, status),
+  INDEX idx_orders_date_status (scheduled_delivery_date, status),
   INDEX idx_orders_store (store_id),
   FOREIGN KEY (store_id) REFERENCES stores(id)
 );
@@ -77,7 +80,7 @@ CREATE TABLE delivery_routes (
   route_date DATE NOT NULL,
   driver_id INT NULL,
   status ENUM('borrador', 'activa', 'finalizada', 'cancelada') NOT NULL DEFAULT 'borrador',
-  start_address VARCHAR(180) NOT NULL DEFAULT 'Sarmiento y Garay, Mar del Plata, Buenos Aires',
+  start_address VARCHAR(180) NOT NULL DEFAULT 'Sarmiento 2790, Mar del Plata, Buenos Aires',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (driver_id) REFERENCES users(id)
@@ -95,18 +98,6 @@ CREATE TABLE route_stops (
   UNIQUE KEY uq_route_order (route_id, order_id),
   FOREIGN KEY (route_id) REFERENCES delivery_routes(id) ON DELETE CASCADE,
   FOREIGN KEY (order_id) REFERENCES orders(id)
-);
-
-CREATE TABLE vehicle_locations (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  route_id INT NULL,
-  driver_id INT NULL,
-  latitude DECIMAL(10, 7) NOT NULL,
-  longitude DECIMAL(10, 7) NOT NULL,
-  accuracy DECIMAL(10, 2) NULL,
-  recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (route_id) REFERENCES delivery_routes(id),
-  FOREIGN KEY (driver_id) REFERENCES users(id)
 );
 
 CREATE TABLE chat_messages (

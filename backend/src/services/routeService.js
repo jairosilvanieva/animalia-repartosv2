@@ -1,9 +1,9 @@
 import { pool, withTransaction } from '../config/db.js';
 
 const BASE = {
-  address: 'Sarmiento y Garay, Mar del Plata, Buenos Aires',
-  latitude: -38.0123,
-  longitude: -57.5496
+  address: 'Sarmiento 2790, Mar del Plata, Buenos Aires',
+  latitude: -38.0089,
+  longitude: -57.5502
 };
 
 export async function createRoute(payload) {
@@ -15,7 +15,7 @@ export async function createRoute(payload) {
   }
 
   const [orders] = await pool.query(
-    `SELECT * FROM orders WHERE id IN (?) ORDER BY priority DESC, order_date ASC`,
+    `SELECT * FROM orders WHERE id IN (?) ORDER BY priority DESC, time_window_start ASC, order_date ASC`,
     [orderIds]
   );
   const eligible = orders.filter((order) => order.status === 'listo_para_repartir');
@@ -28,7 +28,7 @@ export async function createRoute(payload) {
 
   const ordered = orderStops(eligible);
 
-  return withTransaction(async (connection) => {
+  const routeId = await withTransaction(async (connection) => {
     const [routeResult] = await connection.execute(
       `INSERT INTO delivery_routes (name, route_date, driver_id, status)
        VALUES (:name, :routeDate, :driverId, 'borrador')`,
@@ -48,8 +48,10 @@ export async function createRoute(payload) {
       );
     }
 
-    return getRoute(routeId);
+    return routeId;
   });
+
+  return getRoute(routeId);
 }
 
 export async function getRoute(id) {
@@ -58,7 +60,8 @@ export async function getRoute(id) {
 
   const [stops] = await pool.execute(
     `SELECT rs.*, o.customer_name, o.phone, o.address, o.between_streets, o.payment_method,
-            o.amount_to_collect, o.internal_notes, o.time_condition, o.latitude, o.longitude
+            o.amount_to_collect, o.internal_notes, o.time_condition, o.time_window_start,
+            o.time_window_end, o.latitude, o.longitude
      FROM route_stops rs
      JOIN orders o ON o.id = rs.order_id
      WHERE rs.route_id = :id
@@ -67,6 +70,28 @@ export async function getRoute(id) {
   );
 
   return { ...routes[0], stops };
+}
+
+export async function startRoute(id) {
+  await withTransaction(async (connection) => {
+    await connection.execute(
+      `UPDATE delivery_routes SET status = 'activa' WHERE id = :id`,
+      { id }
+    );
+    await connection.execute(
+      `UPDATE route_stops SET status = 'en_camino' WHERE route_id = :id AND status = 'pendiente'`,
+      { id }
+    );
+    await connection.execute(
+      `UPDATE orders o
+       JOIN route_stops rs ON rs.order_id = o.id
+       SET o.status = 'en_camino'
+       WHERE rs.route_id = :id AND o.status = 'listo_para_repartir'`,
+      { id }
+    );
+  });
+
+  return getRoute(id);
 }
 
 export async function updateStop(routeId, stopId, payload) {
@@ -106,13 +131,23 @@ export async function updateStop(routeId, stopId, payload) {
 }
 
 function orderStops(orders) {
-  const priorityBuckets = [...orders].sort((a, b) => scoreTime(a) - scoreTime(b));
-  const withCoords = priorityBuckets.filter((order) => order.latitude && order.longitude);
-  const withoutCoords = priorityBuckets.filter((order) => !order.latitude || !order.longitude);
+  const priority = orders.filter((order) => order.priority);
+  const normal = orders.filter((order) => !order.priority);
+  return [
+    ...nearestNeighbor(priority, BASE),
+    ...nearestNeighbor(normal, BASE)
+  ];
+}
+
+function nearestNeighbor(orders, origin) {
+  const withCoords = orders.filter((order) => order.latitude && order.longitude);
+  const withoutCoords = orders
+    .filter((order) => !order.latitude || !order.longitude)
+    .sort((a, b) => timeValue(a) - timeValue(b));
 
   const ordered = [];
-  let cursor = BASE;
   const pending = [...withCoords];
+  let cursor = origin;
 
   while (pending.length) {
     pending.sort((a, b) => distance(cursor, a) - distance(cursor, b));
@@ -124,15 +159,10 @@ function orderStops(orders) {
   return [...ordered, ...withoutCoords];
 }
 
-function scoreTime(order) {
-  const condition = String(order.time_condition || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-  if (order.priority) return 0;
-  if (condition.includes('antes') || condition.includes('manana')) return 1;
-  if (condition.includes('despues') || condition.includes('tarde')) return 3;
-  return 2;
+function timeValue(order) {
+  if (!order.time_window_start) return Number.MAX_SAFE_INTEGER;
+  const [hours, minutes] = String(order.time_window_start).split(':').map(Number);
+  return hours * 60 + (minutes || 0);
 }
 
 function distance(a, b) {

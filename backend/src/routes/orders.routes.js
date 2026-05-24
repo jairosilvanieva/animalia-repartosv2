@@ -8,14 +8,15 @@ const router = Router();
 
 const manualOrderSchema = z.object({
   cliente: z.string().min(1),
+  fecha_reparto: z.string().optional(),
   telefono: z.string().optional(),
   domicilio: z.string().min(1),
   entre_calles: z.string().optional(),
   productos: z.union([z.string(), z.array(z.any())]).optional(),
   forma_pago: z.string().optional(),
   importe_a_cobrar: z.coerce.number().optional(),
-  condicion_horaria: z.string().optional(),
-  local_origen: z.coerce.number().optional(),
+  rango_horario_desde: z.string().optional(),
+  rango_horario_hasta: z.string().optional(),
   observaciones: z.string().optional(),
   estado: z.string().optional()
 });
@@ -24,6 +25,7 @@ const wooOrderSchema = z.object({
   order_id: z.coerce.number(),
   order_number: z.string().optional(),
   fecha: z.string().optional(),
+  fecha_reparto: z.string().optional(),
   nombre_cliente: z.string().min(1),
   telefono: z.string().optional(),
   dni: z.string().optional(),
@@ -64,7 +66,9 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
 }));
 
 router.patch('/:id', authenticate, asyncHandler(async (req, res) => {
-  res.json(await updateOrder(Number(req.params.id), req.body));
+  const order = await updateOrder(Number(req.params.id), req.body);
+  if (!order) return res.status(404).json({ error: 'Pedido no encontrado.' });
+  return res.json(order);
 }));
 
 export default router;

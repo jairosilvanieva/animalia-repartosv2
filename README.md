@@ -1,6 +1,6 @@
 # Animalia Repartos MVP
 
-App interna para reemplazar la planilla de repartos, recibir pedidos de WooCommerce y armar una ruta diaria desde Animalia Sarmiento y Garay.
+App interna para reemplazar la planilla de repartos, recibir pedidos de WooCommerce y armar tandas de reparto desde Animalia Sarmiento 2790.
 
 ## Arquitectura
 
@@ -10,11 +10,11 @@ App interna para reemplazar la planilla de repartos, recibir pedidos de WooComme
 
 ## Modelo operativo del MVP
 
-1. Los locales o administracion cargan pedidos manuales desde la app.
+1. Administracion carga pedidos manuales desde la app o los recibe desde WooCommerce.
 2. WooCommerce envia pedidos a `POST /api/orders/from-woocommerce`.
-3. Administracion filtra pedidos del dia y crea una ruta.
+3. Administracion filtra por fecha de reparto, selecciona una tanda de pedidos y crea una ruta.
 4. El chofer usa la vista mobile para seguir la ruta, llamar/escribir al cliente y marcar estados.
-5. La vista del chofer puede enviar ubicacion periodica al backend.
+5. El chofer actualiza cada parada desde la vista mobile.
 
 ## Integracion de mapas recomendada
 
@@ -108,8 +108,6 @@ npm run dev:frontend
 - `POST /api/routes`
 - `GET /api/routes/:id`
 - `PATCH /api/routes/:routeId/stops/:stopId`
-- `POST /api/tracking/location`
-- `GET /api/tracking/latest`
 - `GET /api/chat/:routeId`
 - `POST /api/chat/:routeId`
 
@@ -130,8 +128,27 @@ Hay un ejemplo adaptable en `docs/woocommerce-snippet.php`.
 
 La ruta se crea con pedidos listos o pendientes seleccionados. El backend excluye cancelados, entregados y no listos. El algoritmo inicial:
 
-1. Prioriza condiciones horarias simples.
-2. Ordena por cercania usando lat/lng si existen.
-3. Si faltan coordenadas, deja esos pedidos al final para corregir/geocodificar.
+1. Pone primero los pedidos prioritarios.
+2. Dentro de cada grupo, ordena por cercania desde Sarmiento 2790 cuando el pedido tiene lat/lng.
+3. Si faltan coordenadas, usa el rango horario como respaldo.
 
 Cuando se configure `ORS_API_KEY`, el servicio queda preparado para reemplazar el heuristico local por optimizacion externa.
+
+## Geocodificacion
+
+La app puede convertir direcciones en coordenadas usando OpenRouteService. El endpoint oficial de geocodificacion publica resuelve texto de direccion a coordenadas y permite enfocar la busqueda cerca de Mar del Plata.
+
+1. Crear una API key en OpenRouteService.
+2. Ponerla en `backend/.env`:
+
+```env
+ORS_API_KEY=tu_api_key
+```
+
+3. Reiniciar el backend.
+
+Desde ese momento, los pedidos nuevos se geocodifican al cargarse. Para completar pedidos ya existentes:
+
+```bash
+npm --prefix backend run geocode:missing
+```

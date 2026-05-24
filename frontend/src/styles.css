@@ -1,15 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+
 :root {
   color-scheme: light;
-  --bg: #f6f7f9;
-  --panel: #ffffff;
-  --text: #1f2933;
-  --muted: #64748b;
-  --line: #d9e2ec;
-  --brand: #167d6f;
-  --brand-dark: #0f5f55;
-  --danger: #b42318;
-  --warn: #b54708;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --rojo: #cd2a1e;
+  --rojo-d: #9a0f08;
+  --rojo-l: #fef2f2;
+  --naranja: #f97316;
+  --bg: #f0f0f0;
+  --texto: #1a1a1a;
+  --gris: #6b7280;
+  --gris-l: #e5e7eb;
+  --gris-m: #d1d5db;
+  --brand: var(--rojo);
+  --brand-dark: var(--rojo-d);
+  --muted: var(--gris);
+  --line: var(--gris-l);
+  --danger: var(--rojo-d);
+  --ok-bg: #fef3c7;
+  --ok-txt: #92400e;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 * {
@@ -18,8 +27,10 @@
 
 body {
   margin: 0;
+  min-height: 100vh;
   background: var(--bg);
-  color: var(--text);
+  color: var(--texto);
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
@@ -31,43 +42,76 @@ textarea {
 
 button {
   border: 0;
-  border-radius: 6px;
-  background: var(--brand);
+  border-radius: 10px;
+  background: var(--rojo);
   color: #fff;
-  padding: 0.65rem 0.9rem;
+  padding: 0.72rem 1rem;
   cursor: pointer;
+  font-weight: 900;
+  transition: .18s;
+}
+
+button:hover {
+  background: var(--rojo-d);
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+  transform: none;
 }
 
 button.secondary {
-  background: #e7eef5;
-  color: var(--text);
+  background: #f3f4f6;
+  color: var(--texto);
+  border: 1.5px solid var(--gris-l);
+}
+
+button.secondary:hover {
+  background: #e5e7eb;
 }
 
 button.danger {
-  background: var(--danger);
+  background: var(--rojo-d);
 }
 
 input,
 select,
 textarea {
   width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 0.65rem;
+  border: 1.5px solid var(--gris-l);
+  border-radius: 9px;
+  padding: 0.7rem 0.8rem;
   background: #fff;
+  color: var(--texto);
+  outline: none;
+  font-weight: 700;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--rojo);
+  box-shadow: 0 0 0 3px rgba(205, 42, 30, .12);
+}
+
+textarea {
+  resize: vertical;
 }
 
 label {
   display: grid;
-  gap: 0.35rem;
-  color: var(--muted);
-  font-size: 0.9rem;
+  gap: 0.4rem;
+  color: var(--gris);
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
 .panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  background: #fff;
+  border: 1.5px solid var(--gris-l);
+  border-radius: 12px;
   padding: 1rem;
 }
 

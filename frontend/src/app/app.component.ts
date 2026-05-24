@@ -10,8 +10,8 @@ import { AuthService } from './core/auth.service';
   template: `
     <header class="topbar">
       <div>
-        <strong>Animalia Repartos</strong>
-        <span>Sarmiento y Garay como base</span>
+        <strong>ANIMALIA</strong>
+        <span>Repartos - Base Sarmiento 2790</span>
       </div>
       <nav>
         <a routerLink="/">Pedidos</a>
@@ -33,9 +33,10 @@ import { AuthService } from './core/auth.service';
       justify-content: space-between;
       gap: 1rem;
       align-items: center;
-      padding: 0.85rem 1rem;
-      background: #ffffff;
-      border-bottom: 1px solid var(--line);
+      padding: 0.9rem 1rem;
+      background: linear-gradient(135deg, var(--rojo) 0%, var(--rojo-d) 100%);
+      color: #fff;
+      box-shadow: 0 2px 18px rgba(0, 0, 0, .22);
     }
 
     .topbar div {
@@ -44,8 +45,15 @@ import { AuthService } from './core/auth.service';
     }
 
     .topbar span {
-      color: var(--muted);
-      font-size: 0.82rem;
+      color: rgba(255, 255, 255, .76);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .topbar strong {
+      font-size: 1.1rem;
+      font-weight: 900;
+      letter-spacing: 2px;
     }
 
     nav {
@@ -54,9 +62,9 @@ import { AuthService } from './core/auth.service';
     }
 
     a {
-      color: var(--brand-dark);
+      color: #fff;
       text-decoration: none;
-      font-weight: 600;
+      font-weight: 900;
     }
 
     main {
