@@ -1,0 +1,11 @@
+{
+  "name": "animalia-repartos",
+  "private": true,
+  "version": "0.1.0",
+  "description": "MVP interno para gestion y optimizacion de repartos de Animalia.",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend start",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend"
+  }
+}
