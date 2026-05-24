@@ -10,8 +10,8 @@ import { ApiService } from '../../core/api.service';
   template: `
     <section class="grid" *ngIf="route() as currentRoute">
       <div class="panel locked" *ngIf="currentRoute.status !== 'activa'; else activeRoute">
-        <h1>Ruta no cargada a camioneta</h1>
-        <p>Esta tanda todavia esta preparada en administracion. Cuando el local toque "Ruta cargada a camioneta", el chofer va a poder verla desde aca.</p>
+        <h1>Ruta no disponible</h1>
+        <p>Esta ruta no esta activa para el chofer. Puede estar preparada, finalizada o cancelada.</p>
       </div>
 
       <ng-template #activeRoute>
@@ -29,7 +29,9 @@ import { ApiService } from '../../core/api.service';
           <strong>{{ stop.customer_name }}</strong>
           <span>{{ stop.address }}</span>
           <small>{{ timeLabel(stop) }}</small>
-          <small>$ {{ stop.amount_to_collect || 0 }} - {{ stop.payment_method || 'Sin forma de pago' }}</small>
+          <small>Total $ {{ stopTotal(stop) | number:'1.2-2' }} - {{ stop.payment_method || 'Sin forma de pago' }}</small>
+          <small *ngIf="stop.payment_status === 'cobrado'">Pagado - no cobrar</small>
+          <small *ngIf="stop.payment_status !== 'cobrado'">No pagado - cobrar $ {{ stop.amount_to_collect | number:'1.2-2' }}</small>
           <small>{{ stop.internal_notes || '' }}</small>
           <div class="actions">
             <a [href]="'https://www.google.com/maps/search/?api=1&query=' + encode(stop.address)" target="_blank">Maps</a>
@@ -44,7 +46,7 @@ import { ApiService } from '../../core/api.service';
         </div>
       </article>
       <div class="panel empty" *ngIf="!visibleStops(currentRoute).length">
-        Todas las paradas de esta ruta ya fueron entregadas.
+        No quedan entregas pendientes en esta ruta.
       </div>
       </ng-template>
     </section>
@@ -128,7 +130,7 @@ export class DriverComponent implements OnInit {
   }
 
   visibleStops(route: any) {
-    return (route?.stops || []).filter((stop: any) => stop.status !== 'entregado');
+    return (route?.stops || []).filter((stop: any) => ['pendiente', 'en_camino', 'no_entregado'].includes(stop.status));
   }
 
   whatsappUrl(stop: any) {
@@ -141,6 +143,10 @@ export class DriverComponent implements OnInit {
     const end = stop.time_window_end ? String(stop.time_window_end).slice(0, 5) : '';
     if (start && end) return `Horario: ${start} a ${end}`;
     return 'Sin rango horario';
+  }
+
+  stopTotal(stop: any) {
+    return Number(stop.total || stop.amount_to_collect || 0);
   }
 
   encode(value: string) {

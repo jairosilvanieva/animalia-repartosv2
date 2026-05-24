@@ -14,7 +14,7 @@ import { ApiService } from '../../core/api.service';
         <div>
           <span class="eyebrow">Vista chofer</span>
           <h1>Rutas del dia</h1>
-          <p>Solo las rutas cargadas a camioneta quedan disponibles para repartir.</p>
+          <p>Solo aparecen rutas activas con entregas pendientes para trabajar.</p>
         </div>
         <label>Fecha <input type="date" [(ngModel)]="date" (change)="load()" /></label>
       </div>
@@ -22,14 +22,13 @@ import { ApiService } from '../../core/api.service';
       <article class="route" *ngFor="let route of routes()">
         <div>
           <strong>{{ route.name }}</strong>
-          <span>{{ route.stops_count }} pedidos - {{ statusLabel(route.status) }}</span>
+          <span>{{ route.workable_count }} pendientes - {{ route.stops_count }} pedidos totales</span>
         </div>
-        <a *ngIf="route.status === 'activa'" [routerLink]="'/chofer/' + route.id">Abrir ruta</a>
-        <span class="locked" *ngIf="route.status !== 'activa'">Esperando carga a camioneta</span>
+        <a [routerLink]="'/chofer/' + route.id">Abrir ruta</a>
       </article>
 
       <div class="panel empty" *ngIf="!routes().length">
-        No hay rutas armadas para esta fecha.
+        No hay rutas activas con entregas pendientes para esta fecha.
       </div>
     </section>
   `,
@@ -101,10 +100,6 @@ export class DriverRoutesComponent implements OnInit {
   }
 
   load() {
-    this.api.listRoutes({ route_date: this.date }).subscribe((routes) => this.routes.set(routes));
-  }
-
-  statusLabel(status: string) {
-    return status === 'activa' ? 'Activa en camioneta' : 'Preparada';
+    this.api.listRoutes({ route_date: this.date, driver_view: '1' }).subscribe((routes) => this.routes.set(routes));
   }
 }

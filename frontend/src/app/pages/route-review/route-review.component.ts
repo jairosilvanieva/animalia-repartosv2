@@ -14,15 +14,20 @@ import { ApiService } from '../../core/api.service';
           <span class="eyebrow">Ruta armada</span>
           <h1>{{ currentRoute.name }}</h1>
           <p>{{ currentRoute.stops.length }} pedidos seleccionados - {{ statusLabel(currentRoute.status) }}</p>
-          <small>Podés dejar esta tanda preparada mientras otra ruta esta en curso. El chofer la ve recien cuando la cargás a camioneta.</small>
+          <small *ngIf="currentRoute.status === 'borrador'">Podes dejar esta tanda preparada mientras otra ruta esta en curso. El chofer la ve recien cuando la cargas a camioneta.</small>
+          <small *ngIf="currentRoute.status === 'activa'">Esta ruta ya esta cargada en camioneta.</small>
+          <small *ngIf="currentRoute.status === 'finalizada'">Esta ruta ya fue finalizada.</small>
         </div>
         <div class="actions">
           <a [href]="mapsRouteUrl(currentRoute)" target="_blank">Ver ruta en Maps</a>
-          <button type="button" (click)="notifyAll(currentRoute)">Avisar a todos</button>
-          <button [disabled]="currentRoute.status === 'activa'" (click)="start(currentRoute.id)">Ruta cargada a camioneta</button>
+          <button type="button" *ngIf="currentRoute.status !== 'finalizada'" (click)="notifyAll(currentRoute)">Avisar a todos</button>
+          <button *ngIf="currentRoute.status === 'borrador'" (click)="start(currentRoute.id)">Ruta cargada a camioneta</button>
+          <button type="button" *ngIf="currentRoute.status === 'activa'" [disabled]="!canFinish(currentRoute)" (click)="finish(currentRoute.id)">Finalizar ruta</button>
           <a *ngIf="currentRoute.status === 'activa'" [routerLink]="'/chofer/' + currentRoute.id">Vista chofer</a>
-          <span class="driver-wait" *ngIf="currentRoute.status !== 'activa'">Vista chofer bloqueada</span>
+          <span class="driver-wait" *ngIf="currentRoute.status === 'borrador'">Vista chofer bloqueada</span>
+          <span class="driver-wait" *ngIf="currentRoute.status === 'finalizada'">Ruta finalizada</span>
         </div>
+        <p class="message" *ngIf="message()">{{ message() }}</p>
       </div>
 
       <article class="stop" *ngFor="let stop of currentRoute.stops">
@@ -30,9 +35,11 @@ import { ApiService } from '../../core/api.service';
         <div class="stop-body">
           <strong>{{ stop.customer_name }}</strong>
           <span>{{ stop.address }}</span>
-          <small>{{ timeLabel(stop) }} - $ {{ stop.amount_to_collect || 0 }} - {{ stop.payment_method || 'Sin forma de pago' }}</small>
+          <small>{{ timeLabel(stop) }} - Total $ {{ stopTotal(stop) | number:'1.2-2' }} - {{ stop.payment_method || 'Sin forma de pago' }}</small>
+          <small *ngIf="stop.payment_status === 'cobrado'">Pagado - no cobrar</small>
+          <small *ngIf="stop.payment_status !== 'cobrado'">No pagado - cobrar $ {{ stop.amount_to_collect | number:'1.2-2' }}</small>
         </div>
-        <a *ngIf="stop.phone" [href]="whatsappUrl(stop)" target="_blank">Avisar WhatsApp</a>
+        <a *ngIf="stop.phone && currentRoute.status !== 'finalizada'" [href]="whatsappUrl(stop)" target="_blank">Avisar WhatsApp</a>
       </article>
     </section>
   `,
@@ -106,6 +113,7 @@ import { ApiService } from '../../core/api.service';
 })
 export class RouteReviewComponent implements OnInit {
   route = signal<any>(null);
+  message = signal('');
 
   constructor(private routeInfo: ActivatedRoute, private api: ApiService) {}
 
@@ -118,8 +126,25 @@ export class RouteReviewComponent implements OnInit {
     this.api.startRoute(routeId).subscribe((route) => this.route.set(route));
   }
 
+  finish(routeId: number) {
+    this.message.set('');
+    this.api.finishRoute(routeId).subscribe({
+      next: (route) => this.route.set(route),
+      error: (error) => this.message.set(error.error?.error || 'No se pudo finalizar la ruta.')
+    });
+  }
+
   statusLabel(status: string) {
-    return status === 'activa' ? 'Activa en camioneta' : 'Preparada';
+    if (status === 'activa') return 'Activa en camioneta';
+    if (status === 'finalizada') return 'Finalizada';
+    if (status === 'cancelada') return 'Cancelada';
+    return 'Preparada';
+  }
+
+  canFinish(route: any) {
+    return route?.status === 'activa'
+      && (route?.stops || []).length > 0
+      && !(route?.stops || []).some((stop: any) => ['pendiente', 'en_camino'].includes(stop.status));
   }
 
   notifyAll(route: any) {
@@ -150,6 +175,10 @@ export class RouteReviewComponent implements OnInit {
     const end = stop.time_window_end ? String(stop.time_window_end).slice(0, 5) : '';
     if (start && end) return `Horario: ${start} a ${end}`;
     return 'Sin rango horario';
+  }
+
+  stopTotal(stop: any) {
+    return Number(stop.total || stop.amount_to_collect || 0);
   }
 
   cleanPhone(value: string) {

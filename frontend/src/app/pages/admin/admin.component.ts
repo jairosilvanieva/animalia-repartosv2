@@ -77,9 +77,11 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
           <small>
             {{ deliveryDateLabel(order) }} - Horario: {{ timeLabel(order) }}
           </small>
+          <small class="payment-state" [ngClass]="paymentClass(order)">{{ paymentLabel(order) }}</small>
         </button>
         <div class="right">
-          <div class="amount">$ {{ order.amount_to_collect || 0 }}</div>
+          <div class="amount">Total $ {{ orderTotal(order) | number:'1.2-2' }}</div>
+          <span class="collect" *ngIf="order.payment_status !== 'cobrado'">Cobrar $ {{ order.amount_to_collect | number:'1.2-2' }}</span>
           <span class="badge">{{ statusLabel(order.status) }}</span>
         </div>
       </article>
@@ -134,7 +136,11 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
                 <option *ngFor="let method of paymentMethods" [value]="method">{{ method }}</option>
               </select>
             </label>
-            <label>Importe a cobrar <input type="number" name="amount_to_collect" [(ngModel)]="editModel.amount_to_collect" /></label>
+            <label>Total del pedido <input type="number" name="total" [(ngModel)]="editModel.total" /></label>
+            <label class="check">
+              <input type="checkbox" name="edit_paid" [(ngModel)]="editPaid" />
+              Pagado
+            </label>
           </div>
 
           <div class="product-editor">
@@ -289,6 +295,22 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
       color: var(--rojo);
       font-weight: 900;
     }
+    .collect {
+      color: #166534;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .verify {
+      color: #9a3412;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .payment-state {
+      font-weight: 900;
+    }
+    .payment-state.collect { color: #166534; }
+    .payment-state.verify { color: #9a3412; }
+    .payment-state.paid { color: #475569; }
     .badge {
       border-radius: 6px;
       padding: 2px 6px;
@@ -466,6 +488,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   selected = new Set<number>();
   filters = { date: new Date().toISOString().slice(0, 10), status: '', search: '' };
   editModel: Partial<Order> = {};
+  editPaid = false;
   editItems: Array<{ product_name: string; quantity: number }> = [this.emptyItem()];
   paymentMethods = PAYMENT_METHODS;
   quickFilters = [
@@ -550,16 +573,20 @@ export class AdminComponent implements OnInit, OnDestroy {
   closeEdit() {
     this.editing.set(null);
     this.editModel = {};
+    this.editPaid = false;
     this.editItems = [this.emptyItem()];
   }
 
   saveEdit() {
     const order = this.editing();
     if (!order) return;
+    const total = Number(this.editModel.total || 0);
 
     this.api.updateOrder(order.id, {
       ...this.editModel,
-      amount_to_collect: Number(this.editModel.amount_to_collect || 0),
+      total,
+      amount_to_collect: this.editPaid ? 0 : total,
+      payment_status: this.editPaid ? 'cobrado' : 'a_cobrar',
       items: this.productsPayload(),
       store_id: 2,
       time_condition: ''
@@ -581,6 +608,19 @@ export class AdminComponent implements OnInit, OnDestroy {
       : order.products_summary;
     const count = Number(order.items_count || 0);
     return count > 1 ? `${count} productos: ${summary}` : summary;
+  }
+
+  orderTotal(order: Order) {
+    return Number(order.total || order.amount_to_collect || 0);
+  }
+
+  paymentLabel(order: Partial<Order>) {
+    if (order.payment_status === 'cobrado') return 'Pagado - no cobrar';
+    return `No pagado - cobrar $ ${Number(order.amount_to_collect || 0).toFixed(2)}`;
+  }
+
+  paymentClass(order: Partial<Order>) {
+    return order.payment_status === 'cobrado' ? 'paid' : 'collect';
   }
 
   statusLabel(status?: string) {
@@ -612,9 +652,11 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.editModel = {
       ...order,
       scheduled_delivery_date: this.dateOnly(order.scheduled_delivery_date) || this.filters.date,
+      total: this.orderTotal(order),
       time_window_start: this.shortTime(order.time_window_start),
       time_window_end: this.shortTime(order.time_window_end)
     };
+    this.editPaid = order.payment_status === 'cobrado';
     this.editItems = (order.items || []).length
       ? (order.items || []).map((item) => ({
         product_name: item.product_name,

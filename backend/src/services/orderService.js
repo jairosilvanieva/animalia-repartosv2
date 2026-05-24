@@ -22,7 +22,9 @@ export async function listOrders(filters = {}) {
     where.push('o.scheduled_delivery_date = :date');
     params.date = filters.date;
   }
-  if (filters.status === 'finalizados') {
+  if (filters.status === 'todos') {
+    // Sin filtro por estado.
+  } else if (filters.status === 'finalizados') {
     where.push("o.status IN ('entregado', 'cancelado')");
   } else if (filters.status) {
     where.push('o.status = :status');
@@ -95,6 +97,9 @@ export async function getOrder(id) {
 
 export async function createManualOrder(payload) {
   const geocoded = await geocodeAddress(payload.domicilio);
+  const paymentMethod = normalizePaymentMethod(payload.forma_pago);
+  const total = Number(payload.total ?? payload.importe_a_cobrar ?? 0);
+  const paymentStatus = payload.pagado ? 'cobrado' : 'a_cobrar';
 
   return createOrder({
     origin: 'manual',
@@ -105,10 +110,10 @@ export async function createManualOrder(payload) {
     address: payload.domicilio,
     between_streets: payload.entre_calles,
     internal_notes: payload.observaciones,
-    payment_method: payload.forma_pago,
-    payment_status: Number(payload.importe_a_cobrar || 0) > 0 ? 'a_cobrar' : 'cobrado',
-    amount_to_collect: Number(payload.importe_a_cobrar || 0),
-    total: Number(payload.importe_a_cobrar || 0),
+    payment_method: paymentMethod,
+    payment_status: paymentStatus,
+    amount_to_collect: payload.pagado ? 0 : total,
+    total,
     time_condition: null,
     time_window_start: payload.rango_horario_desde || null,
     time_window_end: payload.rango_horario_hasta || null,
@@ -130,6 +135,9 @@ export async function createWooCommerceOrder(payload) {
   }
 
   const geocoded = await geocodeAddress(payload.direccion_envio);
+  const paymentMethod = normalizePaymentMethod(payload.metodo_pago);
+  const total = Number(payload.total || 0);
+  const paymentStatus = payload.pagado ? 'cobrado' : 'a_cobrar';
 
   return createOrder({
     origin: 'woocommerce',
@@ -144,12 +152,12 @@ export async function createWooCommerceOrder(payload) {
     city: payload.ciudad || 'Mar del Plata',
     postal_code: payload.codigo_postal,
     customer_note: payload.nota,
-    payment_method: payload.metodo_pago,
-    payment_status: payload.requiere_corroborrar_pago ? 'corroborar_pago' : 'cobrado',
-    amount_to_collect: payload.requiere_corroborrar_pago ? Number(payload.total || 0) : 0,
+    payment_method: paymentMethod,
+    payment_status: paymentStatus,
+    amount_to_collect: payload.pagado ? 0 : total,
     subtotal: Number(payload.subtotal || 0),
     discounts: Number(payload.descuentos || 0),
-    total: Number(payload.total || 0),
+    total,
     delivery_mode: payload.modalidad_envio,
     latitude: geocoded?.latitude || null,
     longitude: geocoded?.longitude || null,
@@ -174,6 +182,7 @@ export async function updateOrder(id, payload) {
     'payment_method',
     'payment_status',
     'amount_to_collect',
+    'total',
     'delivery_mode',
     'time_condition',
     'time_window_start',
@@ -324,6 +333,26 @@ function normalizeWooItems(productos) {
     unit_price: item.precio_unitario || item.unit_price || 0,
     total: item.total || 0
   }));
+}
+
+function normalizePaymentMethod(method = '') {
+  const value = String(method || '').trim();
+  const lower = value.toLowerCase();
+
+  if (!value) return null;
+  if (lower.includes('modo') && lower.includes('bbva')) return 'BBVA + MODO';
+  if (lower.includes('promo bbva') || (lower.includes('bbva') && lower.includes('martes'))) return 'BBVA tarjeta - 40%';
+  if (lower.includes('bbva') && lower.includes('10%')) return 'BBVA 10% + 3 cuotas';
+  if (lower.includes('galicia') && lower.includes('modo')) return 'Galicia + MODO';
+  if (lower.includes('galicia')) return 'Galicia tarjeta fisica';
+  if (lower.includes('cuenta dni')) return 'Cuenta DNI';
+  if (lower.includes('modo')) return 'MODO - 20%';
+  if (lower.includes('mercado pago') || lower.includes('transferencia')) return 'Tarjeta 1 pago / Transf.';
+  if (lower.includes('tarjeta') && lower.includes('3')) return 'Tarjeta 3 cuotas';
+  if (lower.includes('efectivo')) return 'Efectivo';
+  if (lower.includes('local')) return 'Pago en local';
+
+  return value;
 }
 
 function cleanParams(params) {

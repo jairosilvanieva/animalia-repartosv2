@@ -35,7 +35,7 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
             <option *ngFor="let method of paymentMethods" [value]="method">{{ method }}</option>
           </select>
         </label>
-        <label>Importe a cobrar <input type="number" name="importe_a_cobrar" [(ngModel)]="model.importe_a_cobrar" /></label>
+        <label>Total del pedido <input type="number" name="total" [(ngModel)]="model.total" /></label>
         <label>Estado
           <select name="estado" [(ngModel)]="model.estado">
             <option value="pendiente">Pendiente</option>
@@ -44,6 +44,10 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
             <option value="no_entregado">No entregado</option>
             <option value="cancelado">Cancelado</option>
           </select>
+        </label>
+        <label class="check">
+          <input type="checkbox" name="pagado" [(ngModel)]="model.pagado" />
+          Pagado
         </label>
       </div>
 
@@ -159,6 +163,17 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
       color: var(--rojo);
       padding: 10px 12px;
     }
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--texto);
+      font-weight: 800;
+    }
+    .check input {
+      width: auto;
+      accent-color: var(--rojo);
+    }
     @media (max-width: 760px) {
       .product-row { grid-template-columns: 1fr; }
     }
@@ -175,7 +190,8 @@ export class ManualOrderComponent {
     domicilio: '',
     entre_calles: '',
     forma_pago: '',
-    importe_a_cobrar: 0,
+    total: 0,
+    pagado: false,
     rango_horario_desde: '',
     rango_horario_hasta: '',
     observaciones: '',
@@ -193,6 +209,8 @@ export class ManualOrderComponent {
       this.model.cliente = '';
       this.model.telefono = '';
       this.model.domicilio = '';
+      this.model.total = 0;
+      this.model.pagado = false;
       this.productItems = [this.emptyProduct()];
       this.model.observaciones = '';
       this.model.fecha_reparto = new Date().toISOString().slice(0, 10);

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authenticate } from '../middleware/auth.js';
-import { createRoute, getRoute, listRoutes, startRoute, updateStop } from '../services/routeService.js';
+import { createRoute, finishRoute, getRoute, listRoutes, startRoute, updateStop } from '../services/routeService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
@@ -21,7 +21,8 @@ router.post('/', authenticate, asyncHandler(async (req, res) => {
 router.get('/', authenticate, asyncHandler(async (req, res) => {
   res.json(await listRoutes({
     route_date: req.query.route_date,
-    status: req.query.status
+    status: req.query.status,
+    driver_view: req.query.driver_view
   }));
 }));
 
@@ -33,6 +34,12 @@ router.get('/:id', authenticate, asyncHandler(async (req, res) => {
 
 router.post('/:id/start', authenticate, asyncHandler(async (req, res) => {
   const route = await startRoute(Number(req.params.id));
+  if (!route) return res.status(404).json({ error: 'Ruta no encontrada.' });
+  return res.json(route);
+}));
+
+router.post('/:id/finish', authenticate, asyncHandler(async (req, res) => {
+  const route = await finishRoute(Number(req.params.id));
   if (!route) return res.status(404).json({ error: 'Ruta no encontrada.' });
   return res.json(route);
 }));

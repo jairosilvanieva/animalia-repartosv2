@@ -14,7 +14,9 @@ const manualOrderSchema = z.object({
   entre_calles: z.string().optional(),
   productos: z.union([z.string(), z.array(z.any())]).optional(),
   forma_pago: z.string().optional(),
+  total: z.coerce.number().optional(),
   importe_a_cobrar: z.coerce.number().optional(),
+  pagado: z.boolean().default(false),
   rango_horario_desde: z.string().optional(),
   rango_horario_hasta: z.string().optional(),
   observaciones: z.string().optional(),
@@ -41,6 +43,7 @@ const wooOrderSchema = z.object({
   nota: z.string().optional(),
   estado_woocommerce: z.string().optional(),
   requiere_corroborrar_pago: z.boolean().default(false),
+  pagado: z.boolean().default(false),
   origen: z.literal('woocommerce')
 });
 

@@ -14,7 +14,11 @@ export interface Order {
   customer_note?: string;
   internal_notes?: string;
   payment_method?: string;
+  payment_status?: string;
   amount_to_collect: number;
+  total?: number;
+  subtotal?: number;
+  discounts?: number;
   delivery_mode?: string;
   status: string;
   time_condition?: string;
@@ -78,6 +82,10 @@ export class ApiService {
 
   startRoute(routeId: number) {
     return this.http.post<any>(`${this.baseUrl}/routes/${routeId}/start`, {});
+  }
+
+  finishRoute(routeId: number) {
+    return this.http.post<any>(`${this.baseUrl}/routes/${routeId}/finish`, {});
   }
 
   updateStop(routeId: number, stopId: number, status: string, problem_note?: string) {

@@ -68,12 +68,27 @@ export async function listRoutes(filters = {}) {
     params.status = filters.status;
   }
 
+  if (filters.driver_view) {
+    where.push("dr.status = 'activa'");
+  }
+
+  const having = [];
+  if (filters.driver_view) {
+    having.push('workable_count > 0');
+  }
+
   const [routes] = await pool.execute(
-    `SELECT dr.*, COUNT(rs.id) AS stops_count
+    `SELECT dr.*,
+            COUNT(rs.id) AS stops_count,
+            SUM(CASE WHEN rs.status = 'entregado' THEN 1 ELSE 0 END) AS delivered_count,
+            SUM(CASE WHEN rs.status = 'no_entregado' THEN 1 ELSE 0 END) AS not_delivered_count,
+            SUM(CASE WHEN rs.status IN ('pendiente', 'en_camino') THEN 1 ELSE 0 END) AS open_count,
+            SUM(CASE WHEN rs.status IN ('pendiente', 'en_camino', 'no_entregado') THEN 1 ELSE 0 END) AS workable_count
      FROM delivery_routes dr
      LEFT JOIN route_stops rs ON rs.route_id = dr.id
      ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
      GROUP BY dr.id
+     ${having.length ? `HAVING ${having.join(' AND ')}` : ''}
      ORDER BY dr.created_at DESC, dr.id DESC`,
     params
   );
@@ -87,7 +102,7 @@ export async function getRoute(id) {
 
   const [stops] = await pool.execute(
     `SELECT rs.*, o.customer_name, o.phone, o.address, o.between_streets, o.payment_method,
-            o.amount_to_collect, o.internal_notes, o.time_condition, o.time_window_start,
+            o.payment_status, o.amount_to_collect, o.total, o.internal_notes, o.time_condition, o.time_window_start,
             o.time_window_end, o.latitude, o.longitude
      FROM route_stops rs
      JOIN orders o ON o.id = rs.order_id
@@ -100,6 +115,14 @@ export async function getRoute(id) {
 }
 
 export async function startRoute(id) {
+  const route = await getRoute(id);
+  if (!route) return null;
+  if (route.status !== 'borrador') {
+    const error = new Error('Solo se puede cargar a camioneta una ruta preparada.');
+    error.status = 400;
+    throw error;
+  }
+
   await withTransaction(async (connection) => {
     await connection.execute(
       `UPDATE delivery_routes SET status = 'activa' WHERE id = :id`,
@@ -117,6 +140,30 @@ export async function startRoute(id) {
       { id }
     );
   });
+
+  return getRoute(id);
+}
+
+export async function finishRoute(id) {
+  const route = await getRoute(id);
+  if (!route) return null;
+  if (route.status !== 'activa') {
+    const error = new Error('Solo se puede finalizar una ruta activa.');
+    error.status = 400;
+    throw error;
+  }
+
+  const openStops = route.stops.filter((stop) => ['pendiente', 'en_camino'].includes(stop.status));
+  if (openStops.length) {
+    const error = new Error('Todavia quedan paradas pendientes o en camino.');
+    error.status = 400;
+    throw error;
+  }
+
+  await pool.execute(
+    `UPDATE delivery_routes SET status = 'finalizada' WHERE id = :id`,
+    { id }
+  );
 
   return getRoute(id);
 }
