@@ -11,7 +11,7 @@ import { ApiService } from '../../core/api.service';
     <section class="grid" *ngIf="route() as currentRoute">
       <div class="panel locked" *ngIf="currentRoute.status !== 'activa'; else activeRoute">
         <h1>Ruta no cargada a camioneta</h1>
-        <p>Esta tanda todavia esta preparada en administracion. Cuando el local toque “Ruta cargada a camioneta”, el chofer va a poder verla desde aca.</p>
+        <p>Esta tanda todavia esta preparada en administracion. Cuando el local toque "Ruta cargada a camioneta", el chofer va a poder verla desde aca.</p>
       </div>
 
       <ng-template #activeRoute>
@@ -23,7 +23,7 @@ import { ApiService } from '../../core/api.service';
         <a [href]="mapsRouteUrl(currentRoute)" target="_blank">Ver ruta en Maps</a>
       </div>
 
-      <article class="stop" *ngFor="let stop of currentRoute.stops">
+      <article class="stop" *ngFor="let stop of visibleStops(currentRoute)">
         <div class="stop-number">{{ stop.stop_order }}</div>
         <div class="details">
           <strong>{{ stop.customer_name }}</strong>
@@ -43,6 +43,9 @@ import { ApiService } from '../../core/api.service';
           </div>
         </div>
       </article>
+      <div class="panel empty" *ngIf="!visibleStops(currentRoute).length">
+        Todas las paradas de esta ruta ya fueron entregadas.
+      </div>
       </ng-template>
     </section>
   `,
@@ -75,6 +78,11 @@ import { ApiService } from '../../core/api.service';
       font-weight: 800;
     }
     .details { display: grid; gap: 0.3rem; }
+    .empty {
+      color: var(--gris);
+      font-weight: 900;
+      text-align: center;
+    }
     .actions, .buttons {
       display: flex;
       flex-wrap: wrap;
@@ -110,13 +118,17 @@ export class DriverComponent implements OnInit {
   }
 
   mapsRouteUrl(route: any) {
-    const stops = route?.stops || [];
+    const stops = this.visibleStops(route);
     const origin = 'Sarmiento 2790, Mar del Plata, Buenos Aires';
     const destination = stops.length ? this.mapsAddress(stops[stops.length - 1].address) : origin;
     const waypoints = stops.slice(0, -1).map((stop: any) => this.mapsAddress(stop.address)).join('|');
     const params = new URLSearchParams({ api: '1', origin, destination, travelmode: 'driving' });
     if (waypoints) params.set('waypoints', waypoints);
     return `https://www.google.com/maps/dir/?${params.toString()}`;
+  }
+
+  visibleStops(route: any) {
+    return (route?.stops || []).filter((stop: any) => stop.status !== 'entregado');
   }
 
   whatsappUrl(stop: any) {
