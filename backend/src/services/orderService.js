@@ -32,6 +32,15 @@ export async function listOrders(filters = {}) {
     where.push('o.payment_method = :paymentMethod');
     params.paymentMethod = filters.payment_method;
   }
+  if (filters.search) {
+    where.push(`(
+      o.customer_name LIKE :search
+      OR o.phone LIKE :search
+      OR o.address LIKE :search
+      OR o.order_number LIKE :search
+    )`);
+    params.search = `%${filters.search}%`;
+  }
 
   const sql = `
     SELECT ${ORDER_COLUMNS}

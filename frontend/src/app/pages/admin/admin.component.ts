@@ -22,6 +22,14 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
 
       <div class="toolbar">
         <label>Fecha de reparto <input type="date" [(ngModel)]="filters.date" /></label>
+        <label>Buscar
+          <input
+            name="search"
+            placeholder="Cliente, telefono o domicilio"
+            [(ngModel)]="filters.search"
+            (keyup.enter)="load()"
+          />
+        </label>
         <label>Estado
           <select [(ngModel)]="filters.status">
             <option value="">Activos</option>
@@ -32,6 +40,18 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
           </select>
         </label>
         <button (click)="load()">Aplicar</button>
+      </div>
+
+      <div class="quick-filters">
+        <button
+          type="button"
+          *ngFor="let option of quickFilters"
+          [class.active]="filters.status === option.value"
+          (click)="setStatus(option.value)"
+        >
+          {{ option.label }}
+        </button>
+        <span>{{ orders().length }} pedidos visibles</span>
       </div>
 
       <div class="route-bar">
@@ -62,6 +82,10 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
           <span class="badge">{{ statusLabel(order.status) }}</span>
         </div>
       </article>
+
+      <div class="empty" *ngIf="!orders().length">
+        No hay pedidos para los filtros seleccionados.
+      </div>
 
       <div class="drawer-bg" *ngIf="editing()" (click)="closeEdit()"></div>
       <aside class="drawer" *ngIf="editing() as order">
@@ -121,7 +145,7 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
   styles: [`
     h1, h2, p { margin: 0; }
     .dash { display: grid; gap: 9px; }
-    .hero, .toolbar, .route-bar, .order {
+    .hero, .toolbar, .quick-filters, .route-bar, .order, .empty {
       background: #fff;
       border: 1.5px solid var(--gris-l);
       border-radius: 12px;
@@ -149,10 +173,36 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
     }
     .toolbar {
       display: grid;
-      grid-template-columns: 1fr 1fr auto;
+      grid-template-columns: 1fr 1.2fr 1fr auto;
       gap: 12px;
       align-items: end;
       padding: 10px 12px;
+    }
+    .quick-filters {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 12px;
+    }
+    .quick-filters button {
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #f8fafc;
+      color: var(--texto);
+      border: 1.5px solid var(--gris-l);
+      font-size: 13px;
+    }
+    .quick-filters button.active {
+      background: var(--rojo);
+      color: #fff;
+      border-color: var(--rojo);
+    }
+    .quick-filters span {
+      margin-left: auto;
+      color: var(--gris);
+      font-size: 13px;
+      font-weight: 900;
     }
     .route-bar {
       display: flex;
@@ -224,6 +274,12 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
       color: var(--rojo-d);
       font-weight: 800;
     }
+    .empty {
+      color: var(--gris);
+      font-weight: 900;
+      padding: 18px;
+      text-align: center;
+    }
     .drawer-bg {
       position: fixed;
       inset: 0;
@@ -291,6 +347,7 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
     @media (max-width: 760px) {
       .hero, .route-bar { align-items: stretch; flex-direction: column; }
       .toolbar, .form-grid { grid-template-columns: 1fr; }
+      .quick-filters span { margin-left: 0; width: 100%; }
       .order { grid-template-columns: 10px 24px 1fr; }
       .right { grid-column: 3; justify-items: start; }
     }
@@ -303,9 +360,16 @@ export class AdminComponent implements OnInit, OnDestroy {
   message = signal('');
   editing = signal<Order | null>(null);
   selected = new Set<number>();
-  filters = { date: new Date().toISOString().slice(0, 10), status: '' };
+  filters = { date: new Date().toISOString().slice(0, 10), status: '', search: '' };
   editModel: Partial<Order> = {};
   paymentMethods = PAYMENT_METHODS;
+  quickFilters = [
+    { label: 'Todos activos', value: '' },
+    { label: 'Pendientes', value: 'pendiente' },
+    { label: 'En camino', value: 'en_camino' },
+    { label: 'No entregados', value: 'no_entregado' },
+    { label: 'Finalizados', value: 'finalizados' }
+  ];
   private refreshTimer?: number;
 
   constructor(private api: ApiService, private router: Router) {}
@@ -336,6 +400,11 @@ export class AdminComponent implements OnInit, OnDestroy {
   toggle(id: number) {
     if (this.selected.has(id)) this.selected.delete(id);
     else this.selected.add(id);
+  }
+
+  setStatus(status: string) {
+    this.filters.status = status;
+    this.load();
   }
 
   createRoute() {
