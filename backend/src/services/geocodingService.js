@@ -13,20 +13,21 @@ export async function geocodeAddress(address) {
   url.searchParams.set('focus.point.lon', '-57.5426');
   url.searchParams.set('size', '1');
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`No se pudo geocodificar la direccion: ${response.status}`);
-  }
+  const response = await fetch(url).catch(() => null);
+  if (!response?.ok) return null;
 
   const data = await response.json();
   const feature = data.features?.[0];
   const coordinates = feature?.geometry?.coordinates;
   if (!coordinates?.length) return null;
 
+  const label = feature.properties?.label || '';
+  if (!looksLikeSameStreet(address, label)) return null;
+
   return {
     longitude: coordinates[0],
     latitude: coordinates[1],
-    label: feature.properties?.label || null,
+    label,
     confidence: feature.properties?.confidence || null
   };
 }
@@ -35,4 +36,27 @@ function normalizeAddress(address) {
   const value = String(address || '').trim();
   if (/mar del plata/i.test(value)) return value;
   return `${value}, Mar del Plata, Buenos Aires, Argentina`;
+}
+
+function looksLikeSameStreet(input, label) {
+  const inputStreet = normalizeStreetName(input);
+  const labelStreet = normalizeStreetName(label);
+  if (!inputStreet || !labelStreet) return false;
+  return labelStreet.includes(inputStreet) || inputStreet.includes(labelStreet);
+}
+
+function normalizeStreetName(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\b(av|av\.|avenida|calle|mar|del|plata|buenos|aires|argentina)\b/g, ' ')
+    .replace(/\d+/g, ' ')
+    .replace(/[^a-zñ\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter((word) => word.length > 2)
+    .slice(0, 2)
+    .join(' ');
 }

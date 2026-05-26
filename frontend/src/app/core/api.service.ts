@@ -1,5 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { environment } from '../../environments/environment';
 
 export interface Order {
   id: number;
@@ -27,6 +28,7 @@ export interface Order {
   priority: boolean;
   items_count?: number;
   products_summary?: string;
+  distance_from_base_km?: number | null;
   items?: OrderItem[];
 }
 
@@ -40,7 +42,7 @@ export interface OrderItem {
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  private readonly baseUrl = 'http://localhost:3000/api';
+  private readonly baseUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 

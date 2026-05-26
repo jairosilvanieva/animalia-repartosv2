@@ -201,21 +201,31 @@ export class ManualOrderComponent {
   constructor(private api: ApiService) {}
 
   save() {
+    this.message = 'Guardando pedido...';
     this.api.createManualOrder({
       ...this.model,
       productos: this.productPayload()
-    }).subscribe(() => {
-      this.message = 'Pedido guardado.';
-      this.model.cliente = '';
-      this.model.telefono = '';
-      this.model.domicilio = '';
-      this.model.total = 0;
-      this.model.pagado = false;
-      this.productItems = [this.emptyProduct()];
-      this.model.observaciones = '';
-      this.model.fecha_reparto = new Date().toISOString().slice(0, 10);
-      this.model.rango_horario_desde = '';
-      this.model.rango_horario_hasta = '';
+    }).subscribe({
+      next: () => {
+        this.message = 'Pedido guardado.';
+        this.model.cliente = '';
+        this.model.telefono = '';
+        this.model.domicilio = '';
+        this.model.total = 0;
+        this.model.pagado = false;
+        this.productItems = [this.emptyProduct()];
+        this.model.observaciones = '';
+        this.model.fecha_reparto = new Date().toISOString().slice(0, 10);
+        this.model.rango_horario_desde = '';
+        this.model.rango_horario_hasta = '';
+      },
+      error: (error) => {
+        if (error.status === 401) {
+          this.message = 'Sesion vencida. Toca Salir y volve a ingresar.';
+          return;
+        }
+        this.message = error.error?.error || 'No se pudo guardar el pedido. Revisa los datos e intenta de nuevo.';
+      }
     });
   }
 

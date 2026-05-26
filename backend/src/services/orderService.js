@@ -5,14 +5,24 @@ const ORDER_COLUMNS = `
   o.*, s.name AS store_name
 `;
 
+const BASE_LAT = -38.0089;
+const BASE_LON = -57.5502;
+const DISTANCE_FROM_BASE_SQL = `
+  111.111 * SQRT(
+    POW(o.latitude - ${BASE_LAT}, 2) +
+    POW((o.longitude - ${BASE_LON}) * COS(RADIANS(${BASE_LAT})), 2)
+  )
+`;
+
 const ORDER_LIST_COLUMNS = `
   o.*, s.name AS store_name,
   COALESCE(item_summary.items_count, 0) AS items_count,
-  item_summary.products_summary
+  item_summary.products_summary,
+  CASE
+    WHEN o.latitude IS NULL OR o.longitude IS NULL THEN NULL
+    ELSE ROUND(${DISTANCE_FROM_BASE_SQL}, 2)
+  END AS distance_from_base_km
 `;
-
-const BASE_LAT = -38.0089;
-const BASE_LON = -57.5502;
 
 export async function listOrders(filters = {}) {
   const where = [];
@@ -73,7 +83,7 @@ export async function listOrders(filters = {}) {
     ORDER BY
       o.priority DESC,
       CASE WHEN o.latitude IS NULL OR o.longitude IS NULL THEN 1 ELSE 0 END,
-      POW(o.latitude - ${BASE_LAT}, 2) + POW(o.longitude - ${BASE_LON}, 2),
+      ${DISTANCE_FROM_BASE_SQL},
       o.time_window_start IS NULL,
       o.time_window_start ASC,
       o.order_date DESC,
@@ -96,7 +106,9 @@ export async function getOrder(id) {
 }
 
 export async function createManualOrder(payload) {
-  const geocoded = await geocodeAddress(payload.domicilio);
+  const geocoded = payload.latitude && payload.longitude
+    ? { latitude: payload.latitude, longitude: payload.longitude }
+    : await geocodeAddress(payload.domicilio);
   const paymentMethod = normalizePaymentMethod(payload.forma_pago);
   const total = Number(payload.total ?? payload.importe_a_cobrar ?? 0);
   const paymentStatus = payload.pagado ? 'cobrado' : 'a_cobrar';

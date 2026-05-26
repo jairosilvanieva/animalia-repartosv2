@@ -244,5 +244,8 @@ function distance(a, b) {
   const lon1 = Number(a.longitude);
   const lat2 = Number(b.latitude);
   const lon2 = Number(b.longitude);
-  return Math.hypot(lat1 - lat2, lon1 - lon2);
+  const avgLat = ((lat1 + lat2) / 2) * Math.PI / 180;
+  const latKm = (lat1 - lat2) * 111.111;
+  const lonKm = (lon1 - lon2) * 111.111 * Math.cos(avgLat);
+  return Math.hypot(latKm, lonKm);
 }
