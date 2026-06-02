@@ -41,3 +41,17 @@ documentacion/
 
 # config local del entorno de desarrollo (Claude / launchers)
 .claude/
+
+# archivos con secrets / credenciales locales
+keyh.txt
+keys.txt
+credentials.txt
+passwords.txt
+secrets.txt
+*.secret
+*credentials*
+
+# capturas pegadas en el repo por accidente
+Screenshot*.png
+screenshot*.png
+*.png
