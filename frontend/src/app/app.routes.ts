@@ -8,16 +8,24 @@ import { DriverRoutesComponent } from './pages/driver-routes/driver-routes.compo
 import { HistoryComponent } from './pages/history/history.component';
 import { RoutesComponent } from './pages/routes/routes.component';
 import { UsersComponent } from './pages/users/users.component';
+import { adminGuard, authGuard, staffGuard } from './core/auth.guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
-  { path: '', component: AdminComponent },
-  { path: 'cargar', component: ManualOrderComponent },
-  { path: 'rutas', component: RoutesComponent },
-  { path: 'historial', component: HistoryComponent },
-  { path: 'usuarios', component: UsersComponent },
-  { path: 'ruta/:routeId', component: RouteReviewComponent },
-  { path: 'chofer', component: DriverRoutesComponent },
-  { path: 'chofer/:routeId', component: DriverComponent },
+
+  // Staff (administrador o local)
+  { path: '', component: AdminComponent, canActivate: [staffGuard] },
+  { path: 'cargar', component: ManualOrderComponent, canActivate: [staffGuard] },
+  { path: 'rutas', component: RoutesComponent, canActivate: [staffGuard] },
+  { path: 'historial', component: HistoryComponent, canActivate: [staffGuard] },
+  { path: 'ruta/:routeId', component: RouteReviewComponent, canActivate: [staffGuard] },
+
+  // Solo administradores
+  { path: 'usuarios', component: UsersComponent, canActivate: [adminGuard] },
+
+  // Choferes (y tambien staff puede ver para supervisar)
+  { path: 'chofer', component: DriverRoutesComponent, canActivate: [authGuard] },
+  { path: 'chofer/:routeId', component: DriverComponent, canActivate: [authGuard] },
+
   { path: '**', redirectTo: '' }
 ];

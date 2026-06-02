@@ -28,8 +28,8 @@ import { AuthService } from '../../core/auth.service';
   `]
 })
 export class LoginComponent {
-  email = 'admin@animalia.local';
-  password = 'admin123';
+  email = '';
+  password = '';
   error = '';
 
   constructor(private auth: AuthService, private router: Router) {}

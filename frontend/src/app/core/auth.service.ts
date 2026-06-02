@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -8,6 +9,9 @@ export class AuthService {
   private readonly baseUrl = environment.apiUrl;
   user = signal<any>(JSON.parse(localStorage.getItem('animalia_user') || 'null'));
 
+  isAuthenticated() {
+    return !!localStorage.getItem('animalia_token') && !!this.user();
+  }
   isStaff() {
     const role = this.user()?.role;
     return role === 'administrador' || role === 'local';
@@ -19,7 +23,7 @@ export class AuthService {
     return this.user()?.role === 'chofer';
   }
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private router: Router) {}
 
   login(email: string, password: string) {
     return this.http.post<any>(`${this.baseUrl}/auth/login`, { email, password }).pipe(
@@ -35,5 +39,6 @@ export class AuthService {
     localStorage.removeItem('animalia_token');
     localStorage.removeItem('animalia_user');
     this.user.set(null);
+    this.router.navigateByUrl('/login');
   }
 }
