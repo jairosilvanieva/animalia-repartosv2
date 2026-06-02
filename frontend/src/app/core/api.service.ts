@@ -110,4 +110,25 @@ export class ApiService {
   claimRoute(routeId: number) {
     return this.http.post<any>(`${this.baseUrl}/routes/${routeId}/claim`, {});
   }
+
+  // --- Usuarios ---
+  listUsers() {
+    return this.http.get<any[]>(`${this.baseUrl}/users`);
+  }
+
+  createUser(payload: { name: string; email: string; password: string; role: string; store_id?: number | null }) {
+    return this.http.post<any>(`${this.baseUrl}/users`, payload);
+  }
+
+  updateUser(id: number, payload: Partial<{ name: string; email: string; role: string; active: boolean; store_id: number | null }>) {
+    return this.http.patch<any>(`${this.baseUrl}/users/${id}`, payload);
+  }
+
+  resetUserPassword(id: number, password: string) {
+    return this.http.post<any>(`${this.baseUrl}/users/${id}/reset-password`, { password });
+  }
+
+  changeMyPassword(current_password: string, new_password: string) {
+    return this.http.post<any>(`${this.baseUrl}/users/me/change-password`, { current_password, new_password });
+  }
 }

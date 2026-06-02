@@ -12,6 +12,9 @@ export class AuthService {
     const role = this.user()?.role;
     return role === 'administrador' || role === 'local';
   }
+  isAdmin() {
+    return this.user()?.role === 'administrador';
+  }
   isDriver() {
     return this.user()?.role === 'chofer';
   }

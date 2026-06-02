@@ -19,6 +19,7 @@ import { AuthService } from './core/auth.service';
           <a routerLink="/cargar">Carga manual</a>
           <a routerLink="/rutas">Rutas</a>
           <a routerLink="/historial">Historial</a>
+          <a routerLink="/usuarios" *ngIf="auth.isAdmin()">Usuarios</a>
         </ng-container>
         <a routerLink="/chofer" *ngIf="auth.isDriver() || auth.isStaff()">Vista chofer</a>
         <a routerLink="/login" *ngIf="!auth.user()">Ingresar</a>

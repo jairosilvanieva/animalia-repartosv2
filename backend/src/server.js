@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.routes.js';
 import orderRoutes from './routes/orders.routes.js';
 import routeRoutes from './routes/routes.routes.js';
 import chatRoutes from './routes/chat.routes.js';
+import userRoutes from './routes/users.routes.js';
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/routes', routeRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/users', userRoutes);
 
 app.use((error, req, res, next) => {
   if (error instanceof ZodError) {

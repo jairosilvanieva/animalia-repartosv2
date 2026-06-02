@@ -7,6 +7,7 @@ import { RouteReviewComponent } from './pages/route-review/route-review.componen
 import { DriverRoutesComponent } from './pages/driver-routes/driver-routes.component';
 import { HistoryComponent } from './pages/history/history.component';
 import { RoutesComponent } from './pages/routes/routes.component';
+import { UsersComponent } from './pages/users/users.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -14,6 +15,7 @@ export const routes: Routes = [
   { path: 'cargar', component: ManualOrderComponent },
   { path: 'rutas', component: RoutesComponent },
   { path: 'historial', component: HistoryComponent },
+  { path: 'usuarios', component: UsersComponent },
   { path: 'ruta/:routeId', component: RouteReviewComponent },
   { path: 'chofer', component: DriverRoutesComponent },
   { path: 'chofer/:routeId', component: DriverComponent },
