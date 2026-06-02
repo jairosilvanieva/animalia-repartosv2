@@ -20,6 +20,7 @@ import { ApiService } from '../../core/api.service';
         </div>
         <div class="actions">
           <a [href]="mapsRouteUrl(currentRoute)" target="_blank">Ver ruta en Maps</a>
+          <button type="button" (click)="print()" title="Imprimir lista de direcciones">🖨 Imprimir</button>
           <button type="button" *ngIf="currentRoute.status !== 'finalizada'" (click)="notifyAll(currentRoute)">Avisar a todos</button>
           <button *ngIf="currentRoute.status === 'borrador'" (click)="start(currentRoute.id)">Ruta cargada a camioneta</button>
           <button type="button" *ngIf="currentRoute.status === 'activa'" [disabled]="!canFinish(currentRoute)" (click)="finish(currentRoute.id)">Finalizar ruta</button>
@@ -50,9 +51,66 @@ import { ApiService } from '../../core/api.service';
         </div>
         <a *ngIf="stop.phone && currentRoute.status !== 'finalizada'" class="wa-btn" [href]="whatsappUrl(stop)" target="_blank">WA</a>
       </article>
+
+      <!-- Bloque oculto: solo aparece al imprimir -->
+      <div class="print-block">
+        <h2>{{ currentRoute.name }}</h2>
+        <p class="print-meta">{{ currentRoute.route_date }} · {{ currentRoute.stops.length }} paradas</p>
+        <ol class="print-list">
+          <li *ngFor="let stop of currentRoute.stops">
+            <span class="print-addr">{{ stop.address }}</span>
+            <span class="print-extra" *ngIf="stop.between_streets"> (e/ {{ stop.between_streets }})</span>
+          </li>
+        </ol>
+      </div>
     </section>
   `,
   styles: [`
+    /* Oculto el bloque de impresion en pantalla */
+    .print-block { display: none; }
+
+    @media print {
+      /* Ocultar TODO en la pagina */
+      :host { display: block; }
+      :host * { visibility: hidden; }
+
+      /* Solo mostrar el bloque de impresion */
+      .print-block, .print-block * { visibility: visible; }
+      .print-block {
+        display: block !important;
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        background: white !important;
+        color: black !important;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+      }
+      .print-block h2 {
+        font-size: 18pt;
+        font-weight: bold;
+        margin: 0 0 4px;
+        color: black !important;
+      }
+      .print-meta {
+        font-size: 10pt;
+        color: #555 !important;
+        margin: 0 0 16px;
+      }
+      .print-list {
+        font-size: 13pt;
+        line-height: 1.6;
+        padding-left: 28px;
+        margin: 0;
+      }
+      .print-list li {
+        margin-bottom: 8px;
+        page-break-inside: avoid;
+        color: black !important;
+      }
+      .print-addr { font-weight: 600; }
+      .print-extra { color: #555 !important; font-size: 11pt; font-weight: normal; }
+    }
+
     h1, p { margin: 0; }
     .head {
       display: flex;
@@ -172,6 +230,10 @@ export class RouteReviewComponent implements OnInit {
   ngOnInit() {
     const routeId = this.routeInfo.snapshot.paramMap.get('routeId') || '';
     this.api.getRoute(routeId).subscribe((route) => this.route.set(route));
+  }
+
+  print() {
+    window.print();
   }
 
   canReorder(route: any) {
