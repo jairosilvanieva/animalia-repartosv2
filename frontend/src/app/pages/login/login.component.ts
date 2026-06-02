@@ -36,7 +36,7 @@ export class LoginComponent {
 
   login() {
     this.auth.login(this.email, this.password).subscribe({
-      next: () => this.router.navigateByUrl('/'),
+      next: () => this.router.navigateByUrl(this.auth.isDriver() ? '/chofer' : '/'),
       error: () => this.error = 'No se pudo ingresar.'
     });
   }

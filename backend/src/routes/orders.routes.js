@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authenticate, authenticateInternalApi } from '../middleware/auth.js';
+import { allowRoles, authenticate, authenticateInternalApi } from '../middleware/auth.js';
 import { createManualOrder, createWooCommerceOrder, getOrder, listOrders, updateOrder } from '../services/orderService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -47,28 +47,43 @@ const wooOrderSchema = z.object({
   origen: z.literal('woocommerce')
 });
 
-router.get('/', authenticate, asyncHandler(async (req, res) => {
+const STAFF = ['administrador', 'local'];
+
+router.get('/', authenticate, allowRoles(...STAFF), asyncHandler(async (req, res) => {
   res.json(await listOrders(req.query));
 }));
 
-router.post('/manual', authenticate, asyncHandler(async (req, res) => {
+router.post('/manual', authenticate, allowRoles(...STAFF), asyncHandler(async (req, res) => {
   const input = manualOrderSchema.parse(req.body);
   res.status(201).json(await createManualOrder(input));
 }));
 
 router.post('/from-woocommerce', authenticateInternalApi, asyncHandler(async (req, res) => {
   const input = wooOrderSchema.parse(req.body);
+
+  // 1) Bloquear retiros en local: no entran al sistema de repartos.
+  const modalidad = String(input.modalidad_envio || '').toLowerCase();
+  if (modalidad.includes('retiro') || modalidad.includes('sucursal') || modalidad.includes('pickup') || modalidad === 'retiro_local') {
+    return res.status(200).json({ skipped: true, reason: 'retiro_local', message: 'Pedido omitido: retiro en local.' });
+  }
+
+  // 2) Bloquear envíos fuera de MDP (CPs no empiezan con 76).
+  const cp = String(input.codigo_postal || '').replace(/^B?/i, '').trim();
+  if (cp && !/^76\d{2}$/.test(cp)) {
+    return res.status(200).json({ skipped: true, reason: 'fuera_mdp', message: `Pedido omitido: CP ${cp} fuera de Mar del Plata.` });
+  }
+
   const order = await createWooCommerceOrder(input);
   res.status(201).json(order);
 }));
 
-router.get('/:id', authenticate, asyncHandler(async (req, res) => {
+router.get('/:id', authenticate, allowRoles(...STAFF), asyncHandler(async (req, res) => {
   const order = await getOrder(Number(req.params.id));
   if (!order) return res.status(404).json({ error: 'Pedido no encontrado.' });
   return res.json(order);
 }));
 
-router.patch('/:id', authenticate, asyncHandler(async (req, res) => {
+router.patch('/:id', authenticate, allowRoles(...STAFF), asyncHandler(async (req, res) => {
   const order = await updateOrder(Number(req.params.id), req.body);
   if (!order) return res.status(404).json({ error: 'Pedido no encontrado.' });
   return res.json(order);

@@ -8,6 +8,14 @@ export class AuthService {
   private readonly baseUrl = environment.apiUrl;
   user = signal<any>(JSON.parse(localStorage.getItem('animalia_user') || 'null'));
 
+  isStaff() {
+    const role = this.user()?.role;
+    return role === 'administrador' || role === 'local';
+  }
+  isDriver() {
+    return this.user()?.role === 'chofer';
+  }
+
   constructor(private http: HttpClient) {}
 
   login(email: string, password: string) {

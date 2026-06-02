@@ -5,6 +5,8 @@ import { environment } from '../../environments/environment';
 export interface Order {
   id: number;
   scheduled_delivery_date?: string;
+  current_route_id?: number | null;
+  current_route_status?: 'borrador' | 'activa' | null;
   customer_name: string;
   phone?: string;
   dni?: string;
@@ -28,7 +30,6 @@ export interface Order {
   priority: boolean;
   items_count?: number;
   products_summary?: string;
-  distance_from_base_km?: number | null;
   items?: OrderItem[];
 }
 
@@ -94,4 +95,19 @@ export class ApiService {
     return this.http.patch<any>(`${this.baseUrl}/routes/${routeId}/stops/${stopId}`, { status, problem_note });
   }
 
+  addStopsToRoute(routeId: number, order_ids: number[]) {
+    return this.http.post<any>(`${this.baseUrl}/routes/${routeId}/stops`, { order_ids });
+  }
+
+  reorderRouteStops(routeId: number, stop_ids: number[]) {
+    return this.http.patch<any>(`${this.baseUrl}/routes/${routeId}/reorder`, { stop_ids });
+  }
+
+  deleteRoute(routeId: number) {
+    return this.http.delete(`${this.baseUrl}/routes/${routeId}`);
+  }
+
+  claimRoute(routeId: number) {
+    return this.http.post<any>(`${this.baseUrl}/routes/${routeId}/claim`, {});
+  }
 }

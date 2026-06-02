@@ -14,10 +14,13 @@ import { AuthService } from './core/auth.service';
         <span>Repartos - Base Sarmiento 2790</span>
       </div>
       <nav>
-        <a routerLink="/">Pedidos</a>
-        <a routerLink="/cargar">Carga manual</a>
-        <a routerLink="/historial">Historial</a>
-        <a routerLink="/chofer">Vista chofer</a>
+        <ng-container *ngIf="auth.isStaff()">
+          <a routerLink="/">Pedidos</a>
+          <a routerLink="/cargar">Carga manual</a>
+          <a routerLink="/rutas">Rutas</a>
+          <a routerLink="/historial">Historial</a>
+        </ng-container>
+        <a routerLink="/chofer" *ngIf="auth.isDriver() || auth.isStaff()">Vista chofer</a>
         <a routerLink="/login" *ngIf="!auth.user()">Ingresar</a>
         <button class="secondary" *ngIf="auth.user()" (click)="auth.logout()">Salir</button>
       </nav>
@@ -30,56 +33,60 @@ import { AuthService } from './core/auth.service';
     .topbar {
       position: sticky;
       top: 0;
-      z-index: 2;
+      z-index: 10;
       display: flex;
       justify-content: space-between;
       gap: 1rem;
       align-items: center;
-      padding: 0.9rem 1rem;
-      background: linear-gradient(135deg, var(--rojo) 0%, var(--rojo-d) 100%);
-      color: #fff;
-      box-shadow: 0 2px 18px rgba(0, 0, 0, .22);
+      padding: .6rem 1rem;
+      background: rgba(11, 12, 14, .72);
+      backdrop-filter: saturate(140%) blur(14px);
+      -webkit-backdrop-filter: saturate(140%) blur(14px);
+      border-bottom: 1px solid var(--line);
+      color: var(--texto);
     }
-
-    .topbar div {
-      display: grid;
-      gap: 0.1rem;
-    }
-
-    .topbar span {
-      color: rgba(255, 255, 255, .76);
-      font-size: 0.75rem;
-      font-weight: 700;
-    }
-
+    .topbar > div { display: flex; align-items: baseline; gap: .6rem; }
     .topbar strong {
-      font-size: 1.1rem;
-      font-weight: 900;
-      letter-spacing: 2px;
+      font-size: .82rem;
+      font-weight: 800;
+      letter-spacing: .22em;
+      color: var(--texto);
     }
-
-    nav {
-      display: flex;
-      gap: 0.5rem;
+    .topbar strong::before {
+      content: '';
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--rojo);
+      box-shadow: 0 0 12px var(--rojo);
+      margin-right: .55rem;
+      vertical-align: middle;
     }
-
-    a {
-      color: #fff;
+    .topbar span {
+      color: var(--muted);
+      font-size: .72rem;
+      font-weight: 500;
+    }
+    nav { display: flex; gap: .15rem; align-items: center; }
+    nav a {
+      color: var(--texto-2);
       text-decoration: none;
-      font-weight: 900;
+      font-weight: 500;
+      font-size: .82rem;
+      padding: .45rem .7rem;
+      border-radius: var(--radius-sm);
+      transition: background .15s, color .15s;
     }
-
+    nav a:hover { background: var(--panel-2); color: var(--texto); }
+    nav button { margin-left: .35rem; }
     main {
-      max-width: 1180px;
+      max-width: 1280px;
       margin: 0 auto;
-      padding: 1rem;
+      padding: 1.1rem;
     }
-
     @media (max-width: 640px) {
-      .topbar {
-        align-items: flex-start;
-        flex-direction: column;
-      }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      nav { flex-wrap: wrap; }
     }
   `]
 })

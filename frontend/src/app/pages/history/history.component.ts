@@ -69,11 +69,12 @@ import { ApiService, Order } from '../../core/api.service';
       gap: 12px;
     }
     .panel, .summary {
-      background: #fff;
-      border: 1.5px solid var(--gris-l);
-      border-radius: 12px;
-      box-shadow: 0 4px 14px rgba(154, 15, 8, .06);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: none;
     }
+    .panel { color: var(--texto); }
     .head {
       display: flex;
       justify-content: space-between;
@@ -81,15 +82,12 @@ import { ApiService, Order } from '../../core/api.service';
       gap: 16px;
       padding: 14px 16px;
     }
-    .head h1 {
-      font-size: 26px;
-      font-weight: 900;
-    }
+    .head h1 { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
     .eyebrow {
-      color: var(--rojo);
-      font-size: 10px;
-      font-weight: 900;
-      letter-spacing: .8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
       text-transform: uppercase;
     }
     .summary {
@@ -102,16 +100,20 @@ import { ApiService, Order } from '../../core/api.service';
       display: grid;
       gap: 2px;
       padding: 12px;
-      background: #fff;
+      background: var(--panel);
     }
+    .summary div { background: var(--panel); }
     .summary strong {
-      color: var(--rojo);
-      font-size: 24px;
-      font-weight: 900;
+      color: var(--texto);
+      font-size: 22px;
+      font-weight: 700;
     }
     .summary span, p, small, .row span {
-      color: var(--gris);
-      font-weight: 700;
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
     }
     .columns {
       display: grid;
@@ -124,20 +126,19 @@ import { ApiService, Order } from '../../core/api.service';
       gap: 8px;
       padding: 14px;
     }
-    .list h2 {
-      font-size: 18px;
-      font-weight: 900;
-    }
+    .list h2 { font-size: 14px; font-weight: 600; color: var(--texto); }
     .row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      border: 1.5px solid var(--gris-l);
-      border-radius: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
       padding: 10px;
-      background: #fff;
+      background: var(--panel-2);
+      color: var(--texto);
     }
+    .row:hover { background: var(--panel-3); }
     .row div {
       display: grid;
       gap: 2px;
@@ -150,11 +151,11 @@ import { ApiService, Order } from '../../core/api.service';
       text-decoration: none;
       font-weight: 900;
     }
-    .order.status-entregado { background: #f0fdf4; }
-    .order.status-no_entregado { background: #fefce8; }
-    .order.status-cancelado { background: #fef2f2; }
-    .order.status-en_camino { background: #eff6ff; }
-    .order.status-pendiente { background: #fffaf0; }
+    .order.status-entregado { border-left: 3px solid var(--st-entregado); }
+    .order.status-no_entregado { border-left: 3px solid var(--st-no_entregado); }
+    .order.status-cancelado { border-left: 3px solid var(--st-cancelado); }
+    .order.status-en_camino { border-left: 3px solid var(--st-en_camino); }
+    .order.status-pendiente { border-left: 3px solid var(--st-pendiente); }
     .empty {
       padding: 10px;
       text-align: center;
@@ -180,7 +181,12 @@ export class HistoryComponent implements OnInit {
 
   load() {
     this.api.listOrders({ date: this.date, status: 'todos' }).subscribe((orders) => this.orders.set(orders));
-    this.api.listRoutes({ route_date: this.date }).subscribe((routes) => this.routes.set(routes));
+    // Solo mostrar rutas cerradas en historial.
+    this.api.listRoutes({ route_date: this.date, status: 'finalizada' }).subscribe((fin) => {
+      this.api.listRoutes({ route_date: this.date, status: 'cancelada' }).subscribe((can) => {
+        this.routes.set([...fin, ...can]);
+      });
+    });
   }
 
   countByStatus(status: string) {

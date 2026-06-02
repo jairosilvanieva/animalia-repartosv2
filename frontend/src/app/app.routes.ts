@@ -6,11 +6,13 @@ import { LoginComponent } from './pages/login/login.component';
 import { RouteReviewComponent } from './pages/route-review/route-review.component';
 import { DriverRoutesComponent } from './pages/driver-routes/driver-routes.component';
 import { HistoryComponent } from './pages/history/history.component';
+import { RoutesComponent } from './pages/routes/routes.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: '', component: AdminComponent },
   { path: 'cargar', component: ManualOrderComponent },
+  { path: 'rutas', component: RoutesComponent },
   { path: 'historial', component: HistoryComponent },
   { path: 'ruta/:routeId', component: RouteReviewComponent },
   { path: 'chofer', component: DriverRoutesComponent },

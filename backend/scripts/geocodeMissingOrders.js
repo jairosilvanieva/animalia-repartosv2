@@ -1,6 +1,8 @@
 import { pool } from '../src/config/db.js';
 import { geocodeAddress } from '../src/services/geocodingService.js';
 
+console.log('Geocodificacion manual opcional: este script no afecta la carga diaria de pedidos.');
+
 const [orders] = await pool.execute(
   `SELECT id, address
    FROM orders
@@ -14,7 +16,7 @@ let updated = 0;
 for (const order of orders) {
   const result = await geocodeAddress(order.address);
   if (!result) {
-    console.log(`SIN RESULTADO #${order.id}: ${order.address}`);
+    console.warn(`SIN RESULTADO #${order.id}: ${order.address}. El pedido queda operativo sin coordenadas.`);
     continue;
   }
 
@@ -23,7 +25,7 @@ for (const order of orders) {
     { id: order.id, latitude: result.latitude, longitude: result.longitude }
   );
   updated += 1;
-  console.log(`OK #${order.id}: ${order.address} -> ${result.latitude}, ${result.longitude}`);
+  console.log(`OK #${order.id}: ${order.address} -> ${result.latitude}, ${result.longitude} (${result.label || 'sin etiqueta'})`);
 }
 
 console.log(`Geocodificados: ${updated}/${orders.length}`);

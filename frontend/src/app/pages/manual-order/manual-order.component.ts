@@ -82,25 +82,20 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
       margin: 0 auto;
       display: grid;
       gap: 14px;
-      background: #fff;
+      background: var(--panel);
+      color: var(--texto);
       border: 1.5px solid var(--gris-l);
       border-radius: 12px;
       padding: 18px;
       box-shadow: 0 4px 14px rgba(154, 15, 8, .06);
     }
-    .form-head h1 {
-      font-size: 28px;
-      font-weight: 900;
-    }
-    .form-head p {
-      color: var(--gris);
-      font-weight: 600;
-    }
+    .form-head h1 { font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+    .form-head p { color: var(--muted); font-weight: 500; font-size: 13px; }
     .eyebrow {
-      color: var(--rojo);
-      font-size: 10px;
-      font-weight: 900;
-      letter-spacing: .8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
       text-transform: uppercase;
     }
     .section-title {
@@ -110,36 +105,26 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
       margin-top: 4px;
     }
     .section-title span {
-      background: var(--rojo);
-      color: #fff;
-      border-radius: 5px;
-      padding: 4px 10px;
+      color: var(--muted);
       font-size: 10px;
-      font-weight: 900;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: .5px;
+      letter-spacing: .08em;
     }
-    .section-title hr {
-      flex: 1;
-      border: 0;
-      border-top: 2px solid var(--gris-l);
-    }
+    .section-title hr { flex: 1; border: 0; border-top: 1px solid var(--line); }
     .actions {
       display: flex;
       align-items: center;
       gap: 12px;
     }
-    .actions p {
-      color: var(--rojo);
-      font-weight: 900;
-    }
+    .actions p { color: var(--rojo); font-weight: 500; font-size: 13px; }
     .product-editor {
       display: grid;
       gap: 8px;
       padding: 10px;
       border-radius: 10px;
-      border: 1.5px solid var(--gris-l);
-      background: #f8fafc;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
     }
     .product-editor-head {
       display: flex;
@@ -158,7 +143,8 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
       align-items: end;
     }
     .product-row .remove {
-      background: #fff;
+      background: var(--panel);
+      color: var(--texto);
       border: 1.5px solid var(--gris-l);
       color: var(--rojo);
       padding: 10px 12px;
@@ -224,7 +210,11 @@ export class ManualOrderComponent {
           this.message = 'Sesion vencida. Toca Salir y volve a ingresar.';
           return;
         }
-        this.message = error.error?.error || 'No se pudo guardar el pedido. Revisa los datos e intenta de nuevo.';
+        if (error.status === 0) {
+          this.message = 'No hay conexion con el backend. Verifica que npm run dev:backend este corriendo.';
+          return;
+        }
+        this.message = error.error?.error || `No se pudo guardar el pedido. Error ${error.status || 'desconocido'}.`;
       }
     });
   }

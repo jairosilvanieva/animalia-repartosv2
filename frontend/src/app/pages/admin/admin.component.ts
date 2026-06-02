@@ -11,83 +11,130 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
   imports: [CommonModule, FormsModule],
   template: `
     <section class="dash">
-      <div class="hero">
-        <div>
-          <span class="eyebrow">Operacion diaria</span>
-          <h1>Pedidos ordenados por cercania al local</h1>
-          <p>Primero ves los mas cercanos a Sarmiento 2790. La lista se actualiza sola.</p>
+      <header class="head">
+        <div class="head-left">
+          <h1>Pedidos</h1>
+          <span class="counter">{{ orders().length }}</span>
         </div>
-        <button (click)="load()">Actualizar</button>
-      </div>
+        <div class="head-right">
+          <button class="ghost" (click)="load()" title="Actualizar">↻</button>
+        </div>
+      </header>
 
       <div class="toolbar">
-        <label>Fecha de reparto <input type="date" [(ngModel)]="filters.date" /></label>
-        <label>Buscar
+        <div class="field">
+          <span class="ico">📅</span>
+          <input type="date" [(ngModel)]="filters.date" (change)="load()" />
+        </div>
+        <div class="field grow">
+          <span class="ico">⌕</span>
           <input
             name="search"
-            placeholder="Cliente, telefono o domicilio"
+            placeholder="Buscar cliente, teléfono o domicilio…"
             [(ngModel)]="filters.search"
             (keyup.enter)="load()"
           />
-        </label>
-        <label>Estado
-          <select [(ngModel)]="filters.status">
-            <option value="">Activos</option>
-            <option value="pendiente">Pendiente</option>
-            <option value="en_camino">En camino</option>
-            <option value="no_entregado">No entregado</option>
-            <option value="finalizados">Finalizados</option>
-          </select>
-        </label>
-        <button (click)="load()">Aplicar</button>
+        </div>
+        <div class="chips">
+          <button
+            type="button"
+            class="chip"
+            *ngFor="let option of quickFilters"
+            [class.active]="filters.status === option.value"
+            (click)="setStatus(option.value)"
+          >{{ option.label }}</button>
+        </div>
       </div>
 
-      <div class="quick-filters">
-        <button
-          type="button"
-          *ngFor="let option of quickFilters"
-          [class.active]="filters.status === option.value"
-          (click)="setStatus(option.value)"
-        >
-          {{ option.label }}
-        </button>
-        <span>{{ orders().length }} pedidos visibles</span>
-      </div>
-
-      <div class="route-bar">
+      <div class="route-bar" *ngIf="selected.size || message()">
         <div>
           <strong>{{ selected.size }} seleccionados</strong>
-          <span>Marca solo los pedidos que salen en esta tanda. Podes armar varias rutas en el dia.</span>
+          <span>Marcá solo los pedidos que salen en esta tanda.</span>
         </div>
-        <button [disabled]="!selected.size" (click)="createRoute()">Armar ruta recomendada</button>
+        <div class="route-actions">
+          <select *ngIf="openRoutes().length" [(ngModel)]="addToRouteId" class="route-pick">
+            <option [ngValue]="null">+ Agregar a ruta…</option>
+            <option *ngFor="let r of openRoutes()" [ngValue]="r.id">
+              #{{ r.id }} · {{ r.name }} · {{ r.status === 'activa' ? 'En camioneta' : 'Preparada' }}
+            </option>
+          </select>
+          <button [disabled]="!selected.size || addToRouteId === null" class="secondary" *ngIf="openRoutes().length" (click)="addToExisting()">Agregar</button>
+          <button [disabled]="!selected.size" (click)="createRoute()">Armar ruta →</button>
+        </div>
         <span class="message" *ngIf="message()">{{ message() }}</span>
       </div>
 
-      <article class="order" *ngFor="let order of orders()" [class.priority]="order.priority" [ngClass]="'status-' + order.status">
-        <span class="status-dot" [class]="'status-dot dot-' + order.status"></span>
-        <input type="checkbox" [checked]="selected.has(order.id)" (change)="toggle(order.id)" />
-        <button class="order-main" type="button" (click)="openEdit(order)">
-          <span class="order-title">#{{ order.id }} {{ order.customer_name }}</span>
-          <span>{{ order.address }}</span>
-          <small class="product-line" *ngIf="productSummary(order)">{{ productSummary(order) }}</small>
-          <small>
-            Base Sarmiento 2790 - {{ order.payment_method || 'Sin pago' }} -
-            {{ statusLabel(order.status) }}
-          </small>
-          <small>
-            {{ deliveryDateLabel(order) }} - Horario: {{ timeLabel(order) }}
-          </small>
-          <small class="payment-state" [ngClass]="paymentClass(order)">{{ paymentLabel(order) }}</small>
-        </button>
-        <div class="right">
-          <div class="amount">Total $ {{ orderTotal(order) | number:'1.2-2' }}</div>
-          <span class="collect" *ngIf="order.payment_status !== 'cobrado'">Cobrar $ {{ order.amount_to_collect | number:'1.2-2' }}</span>
-          <span class="badge">{{ statusLabel(order.status) }}</span>
+      <div class="table-wrap">
+        <table class="grid-table">
+          <thead>
+            <tr>
+              <th class="col-check"></th>
+              <th class="col-st"></th>
+              <th>Fecha</th>
+              <th>Cliente</th>
+              <th>Domicilio</th>
+              <th class="map-col"></th>
+              <th>Tel</th>
+              <th>Productos</th>
+              <th>Hora</th>
+              <th>Pago</th>
+              <th class="num">Valor</th>
+              <th class="num">A cobrar</th>
+              <th>Estado</th>
+              <th>Origen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let order of orders()"
+              [class.priority]="order.priority"
+              [class.selected]="selected.has(order.id)"
+              [class.in-route]="isInRoute(order)"
+              [class.in-borrador]="order.current_route_status === 'borrador'"
+              [class.in-activa]="order.current_route_status === 'activa'"
+              (click)="openEdit(order)"
+            >
+              <td class="col-check" (click)="$event.stopPropagation()">
+                <input type="checkbox" [checked]="selected.has(order.id)" [disabled]="isInRoute(order)" (change)="toggle(order.id)" [title]="routeTooltip(order)" />
+              </td>
+              <td class="col-st">
+                <span class="dot" [style.background]="statusColor(order.status)" [title]="statusLabel(order.status)"></span>
+              </td>
+              <td class="mono">{{ shortDate(order.scheduled_delivery_date) }}</td>
+              <td>
+                <div class="cell-strong">{{ order.customer_name }}</div>
+                <div class="cell-sub">#{{ order.id }} <span *ngIf="order.dni">· DNI {{ order.dni }}</span></div>
+              </td>
+              <td>
+                <div>{{ order.address }}</div>
+                <div class="cell-sub" *ngIf="order.between_streets">e/ {{ order.between_streets }}</div>
+              </td>
+              <td class="map-col" (click)="$event.stopPropagation()">
+                <a class="map-btn" [href]="mapsUrl(order)" target="_blank" rel="noopener" title="Abrir en Google Maps">📍</a>
+              </td>
+              <td class="mono small">{{ order.phone || '—' }}</td>
+              <td class="prod" [title]="order.products_summary || ''">
+                <span *ngIf="(order.items_count || 0) > 1" class="qty">{{ order.items_count }}×</span>
+                {{ order.products_summary || '—' }}
+              </td>
+              <td class="mono small">{{ shortTimeRange(order) }}</td>
+              <td class="small">{{ order.payment_method || '—' }}</td>
+              <td class="num mono">$ {{ orderTotal(order) | number:'1.0-0' }}</td>
+              <td class="num mono" [class.pay-paid]="order.payment_status === 'cobrado'" [class.pay-due]="order.payment_status !== 'cobrado' && order.amount_to_collect">
+                {{ order.payment_status === 'cobrado' ? '✓' : '$ ' + (order.amount_to_collect | number:'1.0-0') }}
+              </td>
+              <td>
+                <span class="pill" [style.color]="statusColor(order.status)" [style.background]="statusBg(order.status)">
+                  {{ statusLabel(order.status) }}
+                </span>
+              </td>
+              <td class="small muted">{{ order.priority ? '★ ' : '' }}{{ originLabel(order) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="empty" *ngIf="!orders().length">
+          Sin pedidos para los filtros seleccionados.
         </div>
-      </article>
-
-      <div class="empty" *ngIf="!orders().length">
-        No hay pedidos para los filtros seleccionados.
       </div>
 
       <div class="drawer-bg" *ngIf="editing()" (click)="closeEdit()"></div>
@@ -178,309 +225,281 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
   `,
   styles: [`
     h1, h2, p { margin: 0; }
-    .dash { display: grid; gap: 9px; }
-    .hero, .toolbar, .quick-filters, .route-bar, .order, .empty {
-      background: #fff;
-      border: 1.5px solid var(--gris-l);
-      border-radius: 12px;
-      box-shadow: 0 4px 14px rgba(154, 15, 8, .06);
+    .dash { display: grid; gap: 12px; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .small { font-size: 12px; }
+    .muted { color: var(--muted); }
+
+    /* head */
+    .head {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 2px 2px 4px;
     }
-    .hero {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      padding: 13px 16px;
+    .head-left { display: flex; align-items: baseline; gap: 10px; }
+    .head h1 { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+    .counter {
+      color: var(--muted); font-size: 12px; font-weight: 600;
+      background: var(--panel-2); padding: 2px 8px; border-radius: 999px;
+      border: 1px solid var(--line);
     }
-    .hero h1 {
-      font-size: 24px;
-      font-weight: 900;
-      letter-spacing: .2px;
-    }
-    .hero p, small, .route-bar span { color: var(--gris); font-weight: 600; }
-    .product-line {
-      color: var(--texto);
-      font-weight: 800;
-    }
-    .eyebrow {
-      color: var(--rojo);
-      font-size: 10px;
-      font-weight: 900;
-      letter-spacing: .8px;
-      text-transform: uppercase;
-    }
+    .head-right button.ghost { padding: .35rem .55rem; font-size: 14px; }
+
+    /* toolbar */
     .toolbar {
-      display: grid;
-      grid-template-columns: 1fr 1.2fr 1fr auto;
-      gap: 12px;
-      align-items: end;
-      padding: 10px 12px;
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 8px;
     }
-    .quick-filters {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 8px 12px;
+    .field {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--panel-2); border: 1px solid var(--line);
+      border-radius: var(--radius-sm); padding: 0 .55rem;
+      transition: border-color .15s, box-shadow .15s;
     }
-    .quick-filters button {
-      padding: 8px 10px;
-      border-radius: 8px;
-      background: #f8fafc;
-      color: var(--texto);
-      border: 1.5px solid var(--gris-l);
-      font-size: 13px;
+    .field:focus-within { border-color: var(--rojo); box-shadow: 0 0 0 3px rgba(239,68,68,.12); }
+    .field.grow { flex: 1; min-width: 220px; }
+    .field .ico { color: var(--muted); font-size: 13px; }
+    .field input {
+      border: 0; background: transparent; padding: .45rem 0;
+      box-shadow: none !important;
     }
-    .quick-filters button.active {
-      background: var(--rojo);
-      color: #fff;
-      border-color: var(--rojo);
-    }
-    .quick-filters span {
-      margin-left: auto;
-      color: var(--gris);
-      font-size: 13px;
-      font-weight: 900;
-    }
-    .route-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 12px;
-    }
-    .route-bar div { display: grid; gap: 2px; }
-    .order {
-      display: grid;
-      grid-template-columns: 10px 24px 1fr auto;
-      gap: 10px;
-      align-items: center;
-      padding: 8px 12px;
-      border-left: 5px solid transparent;
-    }
-    .order.priority { border-left-color: var(--naranja); }
-    .order.status-pendiente { background: #fffaf0; }
-    .order.status-en_camino { background: #eff6ff; }
-    .order.status-entregado { background: #f0fdf4; }
-    .order.status-no_entregado { background: #fefce8; }
-    .order.status-cancelado { background: #fef2f2; }
-    .status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      display: block;
-    }
-    .dot-pendiente { background: var(--naranja); }
-    .dot-en_camino { background: #38bdf8; }
-    .dot-entregado { background: #22c55e; }
-    .dot-no_entregado { background: #eab308; }
-    .dot-cancelado { background: var(--rojo); }
-    .order-main {
-      display: grid;
-      gap: 1px;
-      text-align: left;
-      padding: 0;
-      background: transparent;
-      color: var(--texto);
-    }
-    .order-main:hover .order-title { color: var(--rojo); }
-    .order-title { font-weight: 900; font-size: 14px; }
-    .right {
-      display: grid;
-      gap: 6px;
-      justify-items: end;
-    }
-    .amount {
-      font-size: 14px;
-      color: var(--rojo);
-      font-weight: 900;
-    }
-    .collect {
-      color: #166534;
-      font-size: 12px;
-      font-weight: 900;
-    }
-    .verify {
-      color: #9a3412;
-      font-size: 12px;
-      font-weight: 900;
-    }
-    .payment-state {
-      font-weight: 900;
-    }
-    .payment-state.collect { color: #166534; }
-    .payment-state.verify { color: #9a3412; }
-    .payment-state.paid { color: #475569; }
-    .badge {
+    .field input:focus { box-shadow: none; }
+
+    .chips { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+    .map-col { width: 36px; text-align: center; padding-left: 0 !important; padding-right: 0 !important; }
+    .map-btn {
+      display: inline-grid; place-items: center;
+      width: 26px; height: 26px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
       border-radius: 6px;
-      padding: 2px 6px;
-      background: #f3f4f6;
-      color: #374151;
-      font-size: 10px;
-      font-weight: 800;
-    }
-    a {
-      color: var(--rojo);
-      font-weight: 900;
+      color: var(--texto-2);
       text-decoration: none;
+      font-size: 13px;
+      transition: background .15s, border-color .15s, color .15s;
     }
-    .message {
-      color: var(--rojo-d);
-      font-weight: 800;
+    .map-btn:hover { background: var(--rojo-l); border-color: var(--rojo); color: var(--rojo); }
+    .chip {
+      padding: .35rem .7rem; font-size: 12px; font-weight: 500;
+      background: var(--panel-2); color: var(--texto-2);
+      border: 1px solid var(--line); border-radius: 999px;
     }
+    .chip:hover { background: var(--panel-3); color: var(--texto); }
+    .chip.active {
+      background: var(--rojo-l); color: var(--rojo);
+      border-color: rgba(239,68,68,.4);
+    }
+
+    /* route bar (selección) */
+    .route-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px;
+      background: linear-gradient(180deg, rgba(239,68,68,.08), rgba(239,68,68,.02));
+      border: 1px solid rgba(239,68,68,.25);
+      border-radius: var(--radius);
+    }
+    .route-bar > div { display: grid; gap: 1px; flex: 1; }
+    .route-bar strong { font-size: 13px; }
+    .route-bar span { font-size: 12px; color: var(--muted); }
+    .message { color: var(--rojo); font-size: 12px; font-weight: 600; }
+    .route-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .route-pick {
+      background: var(--panel-2); border: 1px solid var(--line);
+      color: var(--texto); padding: .45rem .55rem; font-size: 12px;
+      border-radius: 6px; width: auto; min-width: 220px;
+    }
+
+    /* tabla */
+    .table-wrap {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .grid-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .grid-table thead th {
+      position: sticky; top: 0; z-index: 1;
+      background: var(--panel-2);
+      text-align: left;
+      font-weight: 600; font-size: 11px;
+      letter-spacing: .04em; text-transform: uppercase;
+      color: var(--muted);
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+    .grid-table tbody td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+      max-width: 280px;
+    }
+    .grid-table tbody tr {
+      cursor: pointer;
+      transition: background .12s;
+    }
+    .grid-table tbody tr:hover { background: var(--panel-2); }
+    .grid-table tbody tr.selected { background: rgba(239,68,68,.06); }
+    .grid-table tbody tr.in-route { opacity: .6; }
+    .grid-table tbody tr.in-route:hover { opacity: .9; }
+    .grid-table tbody tr.in-borrador { background: rgba(245,158,11,.04); }
+    .grid-table tbody tr.in-borrador:hover { background: rgba(245,158,11,.08); }
+    .grid-table tbody tr.in-borrador td:first-child { box-shadow: inset 3px 0 0 var(--st-pendiente); }
+    .grid-table tbody tr.in-activa { background: rgba(56,189,248,.04); }
+    .grid-table tbody tr.in-activa:hover { background: rgba(56,189,248,.08); }
+    .grid-table tbody tr.in-activa td:first-child { box-shadow: inset 3px 0 0 var(--st-en_camino); }
+    .grid-table tbody tr.priority td:first-child {
+      box-shadow: inset 3px 0 0 var(--naranja);
+    }
+    .grid-table tbody tr:last-child td { border-bottom: 0; }
+
+    .col-check { width: 32px; padding-left: 14px !important; }
+    .col-st { width: 18px; padding: 0 !important; text-align: center; }
+    .num { text-align: right; }
+    .col-check input { width: auto; }
+
+    .dot {
+      display: inline-block; width: 7px; height: 7px;
+      border-radius: 50%;
+    }
+    .cell-strong { font-weight: 600; color: var(--texto); }
+    .cell-sub { color: var(--muted); font-size: 11px; margin-top: 1px; }
+    .prod {
+      max-width: 320px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      color: var(--texto-2);
+    }
+    .qty { color: var(--rojo); font-weight: 600; margin-right: 4px; }
+    .pay-paid { color: var(--st-entregado); }
+    .pay-due { color: var(--naranja); }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .01em;
+      border: 1px solid currentColor;
+    }
+
     .empty {
-      color: var(--gris);
-      font-weight: 900;
-      padding: 18px;
+      color: var(--muted);
+      padding: 32px;
       text-align: center;
+      font-size: 13px;
     }
+
+    /* drawer */
     .drawer-bg {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, .45);
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(2px);
       z-index: 20;
     }
     .drawer {
-      position: fixed;
-      top: 0;
-      right: 0;
-      bottom: 0;
+      position: fixed; top: 0; right: 0; bottom: 0;
       z-index: 21;
-      width: min(520px, 100vw);
-      background: #fff;
-      box-shadow: -8px 0 30px rgba(0, 0, 0, .18);
+      width: min(540px, 100vw);
+      background: var(--panel);
+      border-left: 1px solid var(--line);
+      box-shadow: -8px 0 40px rgba(0,0,0,.5);
       overflow-y: auto;
     }
-    .drawer form {
-      display: grid;
-      gap: 14px;
-      padding: 16px;
-    }
+    .drawer form { display: grid; gap: 14px; padding: 18px 20px 80px; }
     .drawer-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: start;
-      padding-bottom: 10px;
-      border-bottom: 1.5px solid var(--gris-l);
+      display: flex; justify-content: space-between; align-items: start;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
     }
-    .drawer-head h2 {
-      font-size: 22px;
-      font-weight: 900;
+    .drawer-head .eyebrow {
+      color: var(--muted); font-size: 11px; font-weight: 600;
+      letter-spacing: .05em; text-transform: uppercase;
     }
+    .drawer-head h2 { font-size: 18px; font-weight: 700; margin-top: 2px; }
+    .icon {
+      width: 30px; height: 30px; padding: 0;
+      border-radius: var(--radius-sm);
+      background: var(--panel-2); color: var(--texto-2);
+      border: 1px solid var(--line); font-size: 14px;
+    }
+    .icon:hover { background: var(--panel-3); color: var(--texto); }
+
     .section-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 2px;
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 6px;
     }
     .section-title span {
-      background: var(--rojo);
-      color: #fff;
-      border-radius: 5px;
-      padding: 4px 10px;
-      font-size: 10px;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: .5px;
+      color: var(--muted);
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .08em;
     }
     .section-title hr {
-      flex: 1;
-      border: 0;
-      border-top: 2px solid var(--gris-l);
+      flex: 1; border: 0; border-top: 1px solid var(--line);
     }
-    .status-actions, .contact-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
+
+    .status-actions, .contact-actions { display: flex; flex-wrap: wrap; gap: 6px; }
     .status-actions button, .contact-actions a {
-      border-radius: 8px;
-      border: 1.5px solid var(--gris-l);
-      background: #f8fafc;
-      color: var(--texto);
-      padding: 8px 10px;
-      font-size: 13px;
-      font-weight: 900;
-      text-decoration: none;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: var(--panel-2); color: var(--texto-2);
+      padding: .4rem .7rem; font-size: 12px; font-weight: 500;
+      text-decoration: none; cursor: pointer;
+    }
+    .status-actions button:hover, .contact-actions a:hover {
+      background: var(--panel-3); color: var(--texto);
     }
     .status-actions button.active {
-      background: var(--rojo);
-      border-color: var(--rojo);
-      color: #fff;
+      background: var(--rojo); border-color: var(--rojo); color: #fff;
     }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
     .product-editor {
-      display: grid;
-      gap: 8px;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1.5px solid var(--gris-l);
-      background: #f8fafc;
+      display: grid; gap: 8px; padding: 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: var(--panel-2);
     }
     .product-editor-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
+      display: flex; justify-content: space-between; align-items: center;
     }
-    .product-editor strong {
-      font-size: 13px;
-      font-weight: 900;
-    }
-    .product-row {
-      display: grid;
-      grid-template-columns: 84px 1fr auto;
-      gap: 8px;
-      align-items: end;
-    }
+    .product-editor strong { font-size: 12px; font-weight: 600; }
+    .product-row { display: grid; grid-template-columns: 72px 1fr auto; gap: 6px; align-items: end; }
     .product-row .remove {
-      background: #fff;
-      border: 1.5px solid var(--gris-l);
-      color: var(--rojo);
-      padding: 10px 12px;
+      background: transparent; border: 1px solid var(--line);
+      color: var(--muted); padding: .5rem .6rem;
     }
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
+    .product-row .remove:hover { color: var(--rojo); border-color: var(--rojo); }
+
     .check {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--texto);
-      font-weight: 800;
+      display: flex; align-items: center; gap: 8px;
+      color: var(--texto); font-weight: 500; font-size: 13px;
+      text-transform: none; letter-spacing: 0;
     }
-    .check input {
-      width: auto;
-      accent-color: var(--rojo);
-    }
+    .check input { width: auto; accent-color: var(--rojo); }
+
     .drawer-actions {
-      display: flex;
-      gap: 10px;
-      position: sticky;
-      bottom: 0;
-      background: #fff;
-      padding-top: 10px;
-      border-top: 1.5px solid var(--gris-l);
+      display: flex; gap: 8px;
+      position: sticky; bottom: 0;
+      background: linear-gradient(180deg, transparent, var(--panel) 30%);
+      padding: 14px 0 4px;
+      margin-top: 6px;
     }
-    .icon {
-      width: 34px;
-      height: 34px;
-      padding: 0;
-      border-radius: 50%;
+
+    @media (max-width: 900px) {
+      .grid-table { font-size: 12px; }
+      .grid-table thead th, .grid-table tbody td { padding: 7px 8px; }
     }
     @media (max-width: 760px) {
-      .hero, .route-bar { align-items: stretch; flex-direction: column; }
-      .toolbar, .form-grid { grid-template-columns: 1fr; }
-      .product-row { grid-template-columns: 1fr; }
-      .quick-filters span { margin-left: 0; width: 100%; }
-      .order { grid-template-columns: 10px 24px 1fr; }
-      .right { grid-column: 3; justify-items: start; }
+      .form-grid, .product-row { grid-template-columns: 1fr; }
+      .table-wrap { overflow-x: auto; }
+      .grid-table { min-width: 980px; }
     }
   `]
 })
 export class AdminComponent implements OnInit, OnDestroy {
   orders = signal<Order[]>([]);
+  openRoutes = signal<any[]>([]);
+  addToRouteId: number | null = null;
   routeId = signal<number | null>(null);
   route = signal<any>(null);
   message = signal('');
@@ -529,6 +548,27 @@ export class AdminComponent implements OnInit, OnDestroy {
         this.routeId.set(null);
         this.route.set(null);
       }
+    });
+    // Refresco las rutas abiertas para el dropdown.
+    this.api.listRoutes({ status: 'borrador' }).subscribe((b) => {
+      this.api.listRoutes({ status: 'activa' }).subscribe((a) => {
+        this.openRoutes.set([...b, ...a]);
+      });
+    });
+  }
+
+  addToExisting() {
+    if (!this.addToRouteId || !this.selected.size) return;
+    const routeId = this.addToRouteId;
+    this.message.set('');
+    this.api.addStopsToRoute(routeId, Array.from(this.selected)).subscribe({
+      next: () => {
+        this.message.set('');
+        this.selected.clear();
+        this.addToRouteId = null;
+        this.router.navigateByUrl(`/ruta/${routeId}`);
+      },
+      error: (e) => this.message.set(e.error?.error || 'No se pudo agregar a la ruta.')
     });
   }
 
@@ -621,6 +661,66 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   paymentClass(order: Partial<Order>) {
     return order.payment_status === 'cobrado' ? 'paid' : 'collect';
+  }
+
+  statusColor(status?: string) {
+    const map: Record<string, string> = {
+      pendiente: '#f59e0b',
+      en_camino: '#38bdf8',
+      entregado: '#22c55e',
+      no_entregado: '#eab308',
+      cancelado: '#ef4444'
+    };
+    return map[status || ''] || '#8a8f99';
+  }
+
+  statusBg(status?: string) {
+    const map: Record<string, string> = {
+      pendiente: 'rgba(245,158,11,.10)',
+      en_camino: 'rgba(56,189,248,.10)',
+      entregado: 'rgba(34,197,94,.10)',
+      no_entregado: 'rgba(234,179,8,.10)',
+      cancelado: 'rgba(239,68,68,.10)'
+    };
+    return map[status || ''] || 'rgba(138,143,153,.10)';
+  }
+
+  isInRoute(order: Order) {
+    return !!order.current_route_id;
+  }
+
+  routeTooltip(order: Order) {
+    if (!order.current_route_id) return '';
+    const label = order.current_route_status === 'activa' ? 'En camioneta' : 'Preparada';
+    return `Ya está en ruta #${order.current_route_id} (${label})`;
+  }
+
+  mapsUrl(order: Order) {
+    const parts = [order.address];
+    if (order.between_streets) parts.push(`entre ${order.between_streets}`);
+    parts.push(order.city || 'Mar del Plata');
+    parts.push('Argentina');
+    const query = parts.filter(Boolean).join(', ');
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  }
+
+  originLabel(order: Order) {
+    return (order as unknown as { origin?: string }).origin || '—';
+  }
+
+  shortDate(value?: string) {
+    if (!value) return '—';
+    const d = value.slice(0, 10).split('-');
+    return d.length === 3 ? `${d[2]}/${d[1]}` : value;
+  }
+
+  shortTimeRange(order: Order) {
+    const s = this.shortTime(order.time_window_start);
+    const e = this.shortTime(order.time_window_end);
+    if (s && e) return `${s}–${e}`;
+    if (s) return `≥${s}`;
+    if (e) return `≤${e}`;
+    return '—';
   }
 
   statusLabel(status?: string) {

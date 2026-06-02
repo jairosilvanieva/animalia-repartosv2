@@ -1,9 +1,43 @@
+# dependencias
 node_modules/
+
+# variables de entorno y secrets
 .env
 .env.local
+.env.production
+*.env.local
+
+# builds
 dist/
 .angular/
-coverage/
+build/
+
+# logs
 npm-debug.log*
+yarn-error.log
 *.log
+
+# coverage / testing
+coverage/
+.nyc_output/
+
+# editores / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# documentos internos con secrets viejos
 documentacion/
+
+# claves locales
+*.pem
+*.key
+
+# config local del entorno de desarrollo (Claude / launchers)
+.claude/

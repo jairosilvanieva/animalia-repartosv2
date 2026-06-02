@@ -43,7 +43,7 @@ DB_USER=animalia_repartos_user
 DB_PASSWORD=CAMBIAR_PASSWORD_DB
 DB_NAME=animalia_repartos
 
-ORS_API_KEY=CAMBIAR_API_KEY_OPENROUTESERVICE
+ORS_API_KEY=
 ```
 
 ## 5. Build del frontend
@@ -104,6 +104,8 @@ Crear usuario administrador:
 ```bash
 npm --prefix backend run seed:admin
 ```
+
+`ORS_API_KEY` es opcional. La geolocalizacion automatica esta aislada del flujo diario para que una falla externa no bloquee pedidos.
 
 ## 8. WooCommerce
 

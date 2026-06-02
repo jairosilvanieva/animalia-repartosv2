@@ -1,27 +1,15 @@
 import { pool, withTransaction } from '../config/db.js';
-import { geocodeAddress } from './geocodingService.js';
 
 const ORDER_COLUMNS = `
   o.*, s.name AS store_name
-`;
-
-const BASE_LAT = -38.0089;
-const BASE_LON = -57.5502;
-const DISTANCE_FROM_BASE_SQL = `
-  111.111 * SQRT(
-    POW(o.latitude - ${BASE_LAT}, 2) +
-    POW((o.longitude - ${BASE_LON}) * COS(RADIANS(${BASE_LAT})), 2)
-  )
 `;
 
 const ORDER_LIST_COLUMNS = `
   o.*, s.name AS store_name,
   COALESCE(item_summary.items_count, 0) AS items_count,
   item_summary.products_summary,
-  CASE
-    WHEN o.latitude IS NULL OR o.longitude IS NULL THEN NULL
-    ELSE ROUND(${DISTANCE_FROM_BASE_SQL}, 2)
-  END AS distance_from_base_km
+  current_route.route_id AS current_route_id,
+  current_route.route_status AS current_route_status
 `;
 
 export async function listOrders(filters = {}) {
@@ -79,15 +67,20 @@ export async function listOrders(filters = {}) {
       FROM order_items
       GROUP BY order_id
     ) item_summary ON item_summary.order_id = o.id
+    LEFT JOIN (
+      SELECT rs.order_id, rs.route_id, dr.status AS route_status
+        FROM route_stops rs
+        JOIN delivery_routes dr ON dr.id = rs.route_id
+       WHERE dr.status IN ('borrador', 'activa')
+         AND rs.status NOT IN ('entregado', 'no_entregado')
+    ) current_route ON current_route.order_id = o.id
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
     ORDER BY
       o.priority DESC,
-      CASE WHEN o.latitude IS NULL OR o.longitude IS NULL THEN 1 ELSE 0 END,
-      ${DISTANCE_FROM_BASE_SQL},
       o.time_window_start IS NULL,
       o.time_window_start ASC,
-      o.order_date DESC,
-      o.id DESC
+      o.order_date ASC,
+      o.id ASC
   `;
 
   const [rows] = await pool.execute(sql, params);
@@ -106,9 +99,6 @@ export async function getOrder(id) {
 }
 
 export async function createManualOrder(payload) {
-  const geocoded = payload.latitude && payload.longitude
-    ? { latitude: payload.latitude, longitude: payload.longitude }
-    : await geocodeAddress(payload.domicilio);
   const paymentMethod = normalizePaymentMethod(payload.forma_pago);
   const total = Number(payload.total ?? payload.importe_a_cobrar ?? 0);
   const paymentStatus = payload.pagado ? 'cobrado' : 'a_cobrar';
@@ -130,8 +120,8 @@ export async function createManualOrder(payload) {
     time_window_start: payload.rango_horario_desde || null,
     time_window_end: payload.rango_horario_hasta || null,
     store_id: 2,
-    latitude: geocoded?.latitude || null,
-    longitude: geocoded?.longitude || null,
+    latitude: payload.latitude || null,
+    longitude: payload.longitude || null,
     status: payload.estado || 'pendiente',
     items: normalizeManualItems(payload.productos)
   });
@@ -146,10 +136,12 @@ export async function createWooCommerceOrder(payload) {
     return getOrder(existing[0].id);
   }
 
-  const geocoded = await geocodeAddress(payload.direccion_envio);
   const paymentMethod = normalizePaymentMethod(payload.metodo_pago);
   const total = Number(payload.total || 0);
-  const paymentStatus = payload.pagado ? 'cobrado' : 'a_cobrar';
+
+  // Clasificación robusta basada en el método de pago, no en el flag del cliente.
+  const paymentStatus = classifyPayment(payload.metodo_pago);
+  const amountToCollect = paymentStatus === 'a_cobrar' ? total : 0;
 
   return createOrder({
     origin: 'woocommerce',
@@ -166,13 +158,13 @@ export async function createWooCommerceOrder(payload) {
     customer_note: payload.nota,
     payment_method: paymentMethod,
     payment_status: paymentStatus,
-    amount_to_collect: payload.pagado ? 0 : total,
+    amount_to_collect: amountToCollect,
     subtotal: Number(payload.subtotal || 0),
     discounts: Number(payload.descuentos || 0),
     total,
     delivery_mode: payload.modalidad_envio,
-    latitude: geocoded?.latitude || null,
-    longitude: geocoded?.longitude || null,
+    latitude: payload.latitude || null,
+    longitude: payload.longitude || null,
     status: 'pendiente',
     woocommerce_status: payload.estado_woocommerce,
     items: normalizeWooItems(payload.productos)
@@ -209,14 +201,6 @@ export async function updateOrder(id, payload) {
   const existing = await getOrder(id);
   if (!existing) return null;
   const shouldUpdateItems = Object.prototype.hasOwnProperty.call(payload, 'items');
-
-  if (payload.address && payload.address !== existing.address && !payload.latitude && !payload.longitude) {
-    const geocoded = await geocodeAddress(payload.address);
-    if (geocoded) {
-      payload.latitude = geocoded.latitude;
-      payload.longitude = geocoded.longitude;
-    }
-  }
 
   const fields = allowed.filter((field) => Object.prototype.hasOwnProperty.call(payload, field));
   if (!fields.length && !shouldUpdateItems) return getOrder(id);
@@ -365,6 +349,40 @@ function normalizePaymentMethod(method = '') {
   if (lower.includes('local')) return 'Pago en local';
 
   return value;
+}
+
+// Clasifica el método de pago crudo de Woo en una de las 3 categorías de la app.
+// Comparación case-insensitive sobre payment_method_title.
+// Default = corroborar_pago (conservador: si no lo conocemos, que lo revise el admin).
+const PAYMENT_RULES = {
+  cobrado: [
+    'modo + galicia',
+    'tarjeta de débito o crédito en 1 pago',
+    'tarjeta de debito o credito en 1 pago',
+    'modo'
+  ],
+  corroborar_pago: [
+    'dinero disponible en mercado pago o transferencia bancaria',
+    'modo + bbva'
+  ],
+  a_cobrar: [
+    'efectivo (15% de descuento)',
+    'cuenta dni',
+    '3 cuotas sin interés (pago presencial)',
+    '3 cuotas sin interes (pago presencial)',
+    'plan z naranja x',
+    'promo bbva (pago presencial)'
+  ]
+};
+
+export function classifyPayment(methodTitle = '') {
+  const t = String(methodTitle || '').toLowerCase().trim();
+  if (!t) return 'corroborar_pago';
+  // Orden importa: a_cobrar tiene reglas con "presencial" que ganan sobre "modo" o "bbva" genéricas.
+  if (PAYMENT_RULES.a_cobrar.some((k) => t.includes(k))) return 'a_cobrar';
+  if (PAYMENT_RULES.corroborar_pago.some((k) => t.includes(k))) return 'corroborar_pago';
+  if (PAYMENT_RULES.cobrado.some((k) => t.includes(k))) return 'cobrado';
+  return 'corroborar_pago'; // default conservador
 }
 
 function cleanParams(params) {
