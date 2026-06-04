@@ -2,11 +2,9 @@
 // admin, route-review y vista chofer.
 
 // Link de WhatsApp de soporte usando wa.me (mismo formato que el boton
-// de la pagina principal animalia.com.ar). Incluye texto prefijado para
-// que el operador sepa por que canal lo contactaron al recibir el chat.
-// WhatsApp genera un cartel preview estandar — aceptable porque es la
-// convencion conocida por los clientes.
-const ANIMALIA_WA_URL = 'https://wa.me/5492235503897?text=Hola%2C%20vengo%20del%20reparto%20de%20Animalia';
+// de la pagina principal animalia.com.ar). Sin texto prefijado para que
+// la URL quede corta y prolija en el mensaje al cliente.
+const ANIMALIA_WA_URL = 'https://wa.me/5492235503897';
 
 // Emojis declarados como code points Unicode explicitos para evitar
 // problemas de encoding en el build/transmision.
