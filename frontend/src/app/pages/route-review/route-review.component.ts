@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
+import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
 
 @Component({
   selector: 'app-route-review',
@@ -319,8 +320,8 @@ export class RouteReviewComponent implements OnInit {
   }
 
   whatsappUrl(stop: any) {
-    const message = `Hola ${stop.customer_name}, somos de Animalia. Tu pedido ya esta en camino. El repartidor se dirige a tu domicilio: ${stop.address}.`;
-    return `https://wa.me/${this.cleanPhone(stop.phone)}?text=${encodeURIComponent(message)}`;
+    const msg = buildAnimaliaMessage({ stopOrder: stop?.stop_order });
+    return buildWhatsappUrl(stop?.phone, msg);
   }
 
   timeLabel(stop: any) {

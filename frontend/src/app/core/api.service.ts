@@ -7,6 +7,7 @@ export interface Order {
   scheduled_delivery_date?: string;
   current_route_id?: number | null;
   current_route_status?: 'borrador' | 'activa' | null;
+  current_route_stop_order?: number | null;
   customer_name: string;
   phone?: string;
   dni?: string;

@@ -3,6 +3,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
+import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
 
 @Component({
   selector: 'app-driver',
@@ -291,8 +292,8 @@ export class DriverComponent implements OnInit {
   }
 
   whatsappUrl(stop: any) {
-    const message = `Hola ${stop.customer_name}, somos de Animalia. Tu pedido ya esta en camino. El repartidor se dirige a tu domicilio: ${stop.address}.`;
-    return `https://wa.me/${this.cleanPhone(stop.phone)}?text=${encodeURIComponent(message)}`;
+    const msg = buildAnimaliaMessage({ stopOrder: stop?.stop_order });
+    return buildWhatsappUrl(stop?.phone, msg);
   }
 
   timeLabel(stop: any) {

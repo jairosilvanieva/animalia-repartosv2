@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService, Order } from '../../core/api.service';
 import { PAYMENT_METHODS } from '../../shared/payment-methods';
+import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
 
 @Component({
   selector: 'app-admin',
@@ -685,8 +686,8 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   whatsappUrl(order: Partial<Order>) {
-    const message = `Hola ${order.customer_name || ''}, somos de Animalia. Te escribimos por tu pedido.`;
-    return `https://wa.me/${this.cleanPhone(order.phone || '')}?text=${encodeURIComponent(message)}`;
+    const msg = buildAnimaliaMessage({ stopOrder: order.current_route_stop_order });
+    return buildWhatsappUrl(order.phone, msg);
   }
 
   productSummary(order: Order) {

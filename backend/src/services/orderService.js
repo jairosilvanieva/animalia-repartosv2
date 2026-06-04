@@ -9,7 +9,8 @@ const ORDER_LIST_COLUMNS = `
   COALESCE(item_summary.items_count, 0) AS items_count,
   item_summary.products_summary,
   current_route.route_id AS current_route_id,
-  current_route.route_status AS current_route_status
+  current_route.route_status AS current_route_status,
+  current_route.stop_order AS current_route_stop_order
 `;
 
 export async function listOrders(filters = {}) {
@@ -68,7 +69,7 @@ export async function listOrders(filters = {}) {
       GROUP BY order_id
     ) item_summary ON item_summary.order_id = o.id
     LEFT JOIN (
-      SELECT rs.order_id, rs.route_id, dr.status AS route_status
+      SELECT rs.order_id, rs.route_id, rs.stop_order, dr.status AS route_status
         FROM route_stops rs
         JOIN delivery_routes dr ON dr.id = rs.route_id
        WHERE dr.status IN ('borrador', 'activa')
