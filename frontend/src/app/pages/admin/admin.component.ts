@@ -15,9 +15,13 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
         <div class="head-left">
           <h1>Pedidos</h1>
           <span class="counter">{{ orders().length }}</span>
+          <span class="live" title="Refrescando cada 10 segundos">
+            <span class="live-dot"></span>
+            <span class="live-label">en vivo</span>
+          </span>
         </div>
         <div class="head-right">
-          <button class="ghost" (click)="load()" title="Actualizar">↻</button>
+          <button class="ghost" (click)="load()" title="Actualizar ahora">↻</button>
         </div>
       </header>
 
@@ -248,6 +252,22 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
       border: 1px solid var(--line);
     }
     .head-right button.ghost { padding: .35rem .55rem; font-size: 14px; }
+    .live {
+      display: inline-flex; align-items: center; gap: 4px;
+      color: var(--muted); font-size: 10px;
+      letter-spacing: .04em; text-transform: uppercase;
+      font-weight: 600;
+    }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--st-entregado);
+      box-shadow: 0 0 6px var(--st-entregado);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .4; transform: scale(.85); }
+    }
 
     /* toolbar */
     .toolbar {
@@ -558,7 +578,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.load();
-    this.refreshTimer = window.setInterval(() => this.load(false), 30000);
+    this.refreshTimer = window.setInterval(() => this.load(false), 10000);
   }
 
   ngOnDestroy() {
