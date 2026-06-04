@@ -3,7 +3,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
-import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
+import { buildWhatsappOpenChat } from '../../shared/whatsapp';
 
 @Component({
   selector: 'app-driver',
@@ -292,8 +292,9 @@ export class DriverComponent implements OnInit {
   }
 
   whatsappUrl(stop: any) {
-    const msg = buildAnimaliaMessage({ stopOrder: stop?.stop_order });
-    return buildWhatsappUrl(stop?.phone, msg);
+    // El chofer no usa mensaje prellenado: abre chat directo para que
+    // tipee en el momento (ej. "Estoy afuera").
+    return buildWhatsappOpenChat(stop?.phone);
   }
 
   timeLabel(stop: any) {

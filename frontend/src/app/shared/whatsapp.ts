@@ -22,9 +22,15 @@ interface MessageOpts {
   stopOrder?: number | null;
 }
 
+/**
+ * Mensaje completo para avisar al cliente cuando se carga la ruta a
+ * camioneta (usado en admin y route-review). Incluye negritas con * y
+ * saltos de linea entre secciones para mejor lectura.
+ */
 export function buildAnimaliaMessage(opts: MessageOpts = {}): string {
   const lines: string[] = [];
   lines.push(`Hola, ¿cómo estás? ${E.paw}`);
+  lines.push('');
   lines.push(`${E.truck} Tu pedido ya salió del local y está en ruta.`);
 
   if (opts.stopOrder != null && opts.stopOrder > 0) {
@@ -38,15 +44,28 @@ export function buildAnimaliaMessage(opts: MessageOpts = {}): string {
     }
   }
 
+  lines.push('');
   lines.push(`Por cualquier duda o consulta, escribinos por WhatsApp al ${ANIMALIA_WA_NUMBER}.`);
-  lines.push(`${E.phone} Te pedimos que no respondas este mensaje, así podemos ayudarte más rápido desde el canal correspondiente.`);
+  lines.push('');
+  lines.push(`${E.phone} *Te pedimos que no respondas este mensaje*, así podemos ayudarte más rápido desde el canal correspondiente.`);
+  lines.push('');
   lines.push(`¡Gracias por elegir Animalia! ${E.heart}`);
 
   return lines.join('\n');
 }
 
+/** URL de WhatsApp con mensaje prellenado (admin / route-review). */
 export function buildWhatsappUrl(phone: string | undefined | null, message: string): string {
   return `https://wa.me/${cleanPhone(phone || '')}?text=${encodeURIComponent(message)}`;
+}
+
+/**
+ * URL de WhatsApp SIN texto prefijado: abre el chat directo con el
+ * cliente para que el chofer escriba lo que quiera en el momento
+ * (ej. "Estoy afuera").
+ */
+export function buildWhatsappOpenChat(phone: string | undefined | null): string {
+  return `https://wa.me/${cleanPhone(phone || '')}`;
 }
 
 function cleanPhone(value: string): string {
