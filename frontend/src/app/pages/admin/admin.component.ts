@@ -206,6 +206,11 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
             </div>
           </div>
 
+          <div class="customer-note" *ngIf="editModel.customer_note">
+            <span class="cn-label">💬 Nota del cliente (desde la web)</span>
+            <p>{{ editModel.customer_note }}</p>
+          </div>
+
           <label>Observaciones internas
             <textarea rows="4" name="internal_notes" [(ngModel)]="editModel.internal_notes"></textarea>
           </label>
@@ -469,6 +474,29 @@ import { PAYMENT_METHODS } from '../../shared/payment-methods';
       color: var(--muted); padding: .5rem .6rem;
     }
     .product-row .remove:hover { color: var(--rojo); border-color: var(--rojo); }
+
+    .customer-note {
+      background: rgba(245,158,11,.08);
+      border: 1px solid rgba(245,158,11,.3);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: grid;
+      gap: 4px;
+    }
+    .customer-note .cn-label {
+      color: var(--naranja);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .customer-note p {
+      color: var(--texto);
+      font-size: 13px;
+      line-height: 1.4;
+      margin: 0;
+      white-space: pre-wrap;
+    }
 
     .check {
       display: flex; align-items: center; gap: 8px;

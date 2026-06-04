@@ -48,6 +48,9 @@ import { ApiService } from '../../core/api.service';
             <span class="addr">{{ stop.address }}</span>
             <span class="meta">{{ timeLabel(stop) }} · {{ stop.payment_method || 'Sin pago' }} · $ {{ stopTotal(stop) | number:'1.0-0' }}</span>
           </div>
+          <div *ngIf="stop.customer_note" class="cust-note">
+            💬 <span>{{ stop.customer_note }}</span>
+          </div>
         </div>
         <a *ngIf="stop.phone && currentRoute.status !== 'finalizada'" class="wa-btn" [href]="whatsappUrl(stop)" target="_blank">WA</a>
       </article>
@@ -178,6 +181,20 @@ import { ApiService } from '../../core/api.service';
     .addr { color: var(--texto-2); font-size: 12px; }
     .meta { color: var(--muted); font-size: 11px; }
     small, p, span.message { color: var(--muted); font-weight: 500; font-size: 12px; }
+    .cust-note {
+      background: rgba(245,158,11,.10);
+      border: 1px solid rgba(245,158,11,.35);
+      border-radius: 6px;
+      padding: 5px 8px;
+      color: var(--naranja);
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      gap: 4px;
+      align-items: flex-start;
+      margin-top: 4px;
+    }
+    .cust-note span { color: var(--texto); font-weight: 500; line-height: 1.3; }
     .reorder { display: grid; gap: 2px; margin-top: 0; }
     .rb {
       width: 22px; height: 18px;

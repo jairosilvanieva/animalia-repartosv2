@@ -60,6 +60,9 @@ import { AuthService } from '../../core/auth.service';
             <span class="addr">{{ stop.address }}</span>
             <span class="meta">{{ timeLabel(stop) }} · {{ stop.payment_method || 'Sin pago' }} · $ {{ stopTotal(stop) | number:'1.0-0' }}</span>
           </div>
+          <div *ngIf="stop.customer_note" class="cust-note">
+            💬 <span>{{ stop.customer_note }}</span>
+          </div>
           <small *ngIf="stop.internal_notes" class="note">{{ stop.internal_notes }}</small>
           <div class="row-actions">
             <div class="links">
@@ -129,6 +132,20 @@ import { AuthService } from '../../core/auth.service';
     .addr { color: var(--texto-2); font-size: 12px; }
     .meta { color: var(--muted); font-size: 11px; }
     .note { color: var(--muted); font-size: 11px; font-style: italic; }
+    .cust-note {
+      background: rgba(245,158,11,.10);
+      border: 1px solid rgba(245,158,11,.35);
+      border-radius: 6px;
+      padding: 5px 8px;
+      color: var(--naranja);
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      gap: 4px;
+      align-items: flex-start;
+      margin-top: 2px;
+    }
+    .cust-note span { color: var(--texto); font-weight: 500; line-height: 1.3; }
     .row-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
     .links { display: flex; gap: 4px; }
     .buttons { display: flex; gap: 4px; }
