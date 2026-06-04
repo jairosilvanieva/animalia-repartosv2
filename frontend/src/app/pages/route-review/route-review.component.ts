@@ -52,8 +52,13 @@ import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
           <div *ngIf="stop.customer_note" class="cust-note">
             💬 <span>{{ stop.customer_note }}</span>
           </div>
+          <div class="links">
+            <a [href]="mapsUrl(stop)" target="_blank">Maps</a>
+            <a [href]="wazeUrl(stop)" target="_blank">Waze</a>
+            <a *ngIf="stop.phone" [href]="'tel:' + stop.phone">Llamar</a>
+            <a *ngIf="stop.phone && currentRoute.status !== 'finalizada'" class="wa-link" [href]="whatsappUrl(stop)" target="_blank">WA</a>
+          </div>
         </div>
-        <a *ngIf="stop.phone && currentRoute.status !== 'finalizada'" class="wa-btn" [href]="whatsappUrl(stop)" target="_blank">WA</a>
       </article>
 
       <!-- Bloque oculto: solo aparece al imprimir -->
@@ -129,27 +134,38 @@ import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
       letter-spacing: .06em;
       text-transform: uppercase;
     }
+    .head {
+      flex-wrap: wrap;
+    }
     .actions {
       display: flex;
       flex-wrap: wrap;
       gap: .4rem;
       align-items: center;
     }
+    .actions a, .actions button {
+      padding: .45rem .8rem;
+      font-size: 12px;
+      white-space: nowrap;
+    }
     .actions a {
       background: var(--panel-2);
       color: var(--texto);
       border: 1px solid var(--line);
-      padding: .45rem .8rem;
-      font-size: 12px;
     }
     .actions a:hover { background: var(--panel-3); border-color: var(--line-strong); }
     .head h1 { font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
     .head > div:first-child { display: grid; gap: 2px; }
     .head p { font-size: 12px; color: var(--muted); }
     .head small { font-size: 11px; color: var(--muted); }
+    @media (max-width: 600px) {
+      .head { flex-direction: column; align-items: stretch; }
+      .actions { width: 100%; }
+      .actions a, .actions button { flex: 1; min-width: 0; text-align: center; }
+    }
     .stop {
       display: grid;
-      grid-template-columns: auto 26px 1fr auto;
+      grid-template-columns: auto 26px 1fr;
       gap: .6rem;
       align-items: start;
       background: var(--panel);
@@ -206,13 +222,29 @@ import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
     }
     .rb:hover:not(:disabled) { background: var(--panel-3); color: var(--texto); }
     .rb:disabled { opacity: .35; cursor: not-allowed; }
-    .wa-btn {
-      align-self: center;
-      background: var(--st-entregado) !important;
-      color: #0a0a0a !important;
-      border-color: var(--st-entregado) !important;
-      font-weight: 600 !important;
+    /* Chips de acciones por parada (Maps, Waze, Llamar, WA) */
+    .links {
+      display: flex; gap: 4px; flex-wrap: wrap;
+      margin-top: 4px;
     }
+    .links a {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      color: var(--texto-2);
+      padding: .25rem .55rem;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 5px;
+      text-decoration: none;
+    }
+    .links a:hover { background: var(--panel-3); color: var(--texto); border-color: var(--line-strong); }
+    .links a.wa-link {
+      background: var(--st-entregado);
+      color: #0a0a0a;
+      border-color: var(--st-entregado);
+      font-weight: 600;
+    }
+    .links a.wa-link:hover { background: #18b358; color: #0a0a0a; }
     .driver-wait {
       border-radius: 6px;
       border: 1px dashed var(--line-strong);
@@ -322,6 +354,20 @@ export class RouteReviewComponent implements OnInit {
   whatsappUrl(stop: any) {
     const msg = buildAnimaliaMessage({ stopOrder: stop?.stop_order });
     return buildWhatsappUrl(stop?.phone, msg);
+  }
+
+  mapsUrl(stop: any) {
+    if (stop?.latitude && stop?.longitude) {
+      return `https://www.google.com/maps/search/?api=1&query=${stop.latitude},${stop.longitude}`;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop?.address || '')}`;
+  }
+
+  wazeUrl(stop: any) {
+    if (stop?.latitude && stop?.longitude) {
+      return `https://waze.com/ul?ll=${stop.latitude},${stop.longitude}&navigate=yes`;
+    }
+    return `https://waze.com/ul?q=${encodeURIComponent(stop?.address || '')}`;
   }
 
   timeLabel(stop: any) {
