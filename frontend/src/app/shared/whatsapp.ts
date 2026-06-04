@@ -1,7 +1,10 @@
 // Helper unico para mensajes de WhatsApp. Editar aca se refleja en
 // admin, route-review y vista chofer.
 
-const ANIMALIA_WA_LINK = 'https://wa.me/2235503897';
+// Numero de WhatsApp de soporte. Lo dejamos como texto plano (no como URL
+// https://wa.me/...) para que WhatsApp NO genere el cartelito de preview
+// con el logo. El numero igual es clickeable en celulares.
+const ANIMALIA_WA_NUMBER = '2235503897';
 
 // Emojis declarados como code points Unicode explicitos para evitar
 // problemas de encoding en el build/transmision.
@@ -35,8 +38,7 @@ export function buildAnimaliaMessage(opts: MessageOpts = {}): string {
     }
   }
 
-  lines.push('Por cualquier duda o consulta, por favor escribinos a este WhatsApp:');
-  lines.push(ANIMALIA_WA_LINK);
+  lines.push(`Por cualquier duda o consulta, escribinos por WhatsApp al ${ANIMALIA_WA_NUMBER}.`);
   lines.push(`${E.phone} Te pedimos que no respondas este mensaje, así podemos ayudarte más rápido desde el canal correspondiente.`);
   lines.push(`¡Gracias por elegir Animalia! ${E.heart}`);
 
