@@ -227,6 +227,7 @@ import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
 
           <div class="drawer-actions">
             <button type="submit">Guardar cambios</button>
+            <a class="secondary print-btn" [href]="'/imprimir/pedido/' + order.id" target="_blank" rel="noopener" title="Abrir vista de impresión térmica">🖨 Imprimir</a>
             <button class="secondary" type="button" (click)="closeEdit()">Cancelar</button>
           </div>
         </form>
@@ -526,6 +527,18 @@ import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
     }
     .check input { width: auto; accent-color: var(--rojo); }
 
+    .print-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: .55rem .85rem;
+      border-radius: var(--radius-sm);
+      background: var(--panel-2);
+      color: var(--texto);
+      border: 1px solid var(--line);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .print-btn:hover { background: var(--panel-3); border-color: var(--line-strong); }
     .drawer-actions {
       display: flex; gap: 8px;
       position: sticky; bottom: 0;

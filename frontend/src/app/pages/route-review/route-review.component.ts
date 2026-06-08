@@ -21,7 +21,7 @@ import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
         </div>
         <div class="actions">
           <a [href]="mapsRouteUrl(currentRoute)" target="_blank">Ver ruta en Maps</a>
-          <button type="button" (click)="print()" title="Imprimir lista de direcciones">🖨 Imprimir</button>
+          <a [href]="'/imprimir/ruta/' + currentRoute.id" target="_blank" rel="noopener" title="Vista de impresión térmica">🖨 Imprimir</a>
           <button type="button" *ngIf="currentRoute.status !== 'finalizada'" (click)="notifyAll(currentRoute)">Avisar a todos</button>
           <button *ngIf="currentRoute.status === 'borrador'" (click)="start(currentRoute.id)">Ruta cargada a camioneta</button>
           <button type="button" *ngIf="currentRoute.status === 'activa'" [disabled]="!canFinish(currentRoute)" (click)="finish(currentRoute.id)">Finalizar ruta</button>

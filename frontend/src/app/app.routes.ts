@@ -8,6 +8,8 @@ import { DriverRoutesComponent } from './pages/driver-routes/driver-routes.compo
 import { HistoryComponent } from './pages/history/history.component';
 import { RoutesComponent } from './pages/routes/routes.component';
 import { UsersComponent } from './pages/users/users.component';
+import { PrintOrderComponent } from './pages/print-order/print-order.component';
+import { PrintRouteComponent } from './pages/print-route/print-route.component';
 import { adminGuard, authGuard, staffGuard } from './core/auth.guard';
 
 export const routes: Routes = [
@@ -22,6 +24,10 @@ export const routes: Routes = [
 
   // Solo administradores
   { path: 'usuarios', component: UsersComponent, canActivate: [adminGuard] },
+
+  // Impresion termica (abren en pestana nueva con auto-print)
+  { path: 'imprimir/pedido/:id', component: PrintOrderComponent, canActivate: [staffGuard] },
+  { path: 'imprimir/ruta/:id', component: PrintRouteComponent, canActivate: [staffGuard] },
 
   // Choferes (y tambien staff puede ver para supervisar)
   { path: 'chofer', component: DriverRoutesComponent, canActivate: [authGuard] },
