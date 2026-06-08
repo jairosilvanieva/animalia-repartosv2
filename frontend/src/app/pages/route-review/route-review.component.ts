@@ -3,6 +3,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
+import { addressForMapsQuery } from '../../shared/address';
 
 @Component({
   selector: 'app-route-review',
@@ -57,6 +58,7 @@ import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
             <a [href]="wazeUrl(stop)" target="_blank">Waze</a>
             <a *ngIf="stop.phone" [href]="'tel:' + stop.phone">Llamar</a>
             <a *ngIf="stop.phone && currentRoute.status !== 'finalizada'" class="wa-link" [href]="whatsappUrl(stop)" target="_blank">WA</a>
+            <button *ngIf="currentRoute.status === 'borrador'" type="button" class="del-link" (click)="removeStop(currentRoute, stop.id)" title="Sacar de la ruta">✕ Sacar</button>
           </div>
         </div>
       </article>
@@ -245,6 +247,20 @@ import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
       font-weight: 600;
     }
     .links a.wa-link:hover { background: #18b358; color: #0a0a0a; }
+    .links button.del-link {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      color: var(--st-cancelado);
+      padding: .25rem .55rem;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .links button.del-link:hover {
+      background: rgba(239,68,68,.10);
+      border-color: var(--st-cancelado);
+    }
     .driver-wait {
       border-radius: 6px;
       border: 1px dashed var(--line-strong);
@@ -284,6 +300,14 @@ export class RouteReviewComponent implements OnInit {
 
   print() {
     window.print();
+  }
+
+  removeStop(route: any, stopId: number) {
+    if (!confirm('¿Sacar este pedido de la ruta? El pedido vuelve al panel y puede ir en otra ruta.')) return;
+    this.api.removeStopFromRoute(route.id, stopId).subscribe({
+      next: (updated) => this.route.set(updated),
+      error: (e) => this.message.set(e.error?.error || 'No se pudo sacar el pedido.')
+    });
   }
 
   canReorder(route: any) {
@@ -360,14 +384,16 @@ export class RouteReviewComponent implements OnInit {
     if (stop?.latitude && stop?.longitude) {
       return `https://www.google.com/maps/search/?api=1&query=${stop.latitude},${stop.longitude}`;
     }
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop?.address || '')}`;
+    const query = addressForMapsQuery(stop?.address, stop?.city);
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
   }
 
   wazeUrl(stop: any) {
     if (stop?.latitude && stop?.longitude) {
       return `https://waze.com/ul?ll=${stop.latitude},${stop.longitude}&navigate=yes`;
     }
-    return `https://waze.com/ul?q=${encodeURIComponent(stop?.address || '')}`;
+    const query = addressForMapsQuery(stop?.address, stop?.city);
+    return `https://waze.com/ul?q=${encodeURIComponent(query)}`;
   }
 
   timeLabel(stop: any) {

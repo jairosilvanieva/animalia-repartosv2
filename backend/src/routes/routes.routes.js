@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { allowRoles, authenticate } from '../middleware/auth.js';
-import { addStopsToRoute, claimRoute, createRoute, deleteRoute, finishRoute, getRoute, listRoutes, reorderStops, startRoute, updateStop } from '../services/routeService.js';
+import { addStopsToRoute, claimRoute, createRoute, deleteRoute, finishRoute, getRoute, listRoutes, removeStop, reorderStops, startRoute, updateStop } from '../services/routeService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
@@ -78,6 +78,13 @@ router.delete('/:id', authenticate, allowRoles(...STAFF), asyncHandler(async (re
   const ok = await deleteRoute(Number(req.params.id));
   if (!ok) return res.status(404).json({ error: 'Ruta no encontrada o no eliminable.' });
   return res.status(204).end();
+}));
+
+// Sacar una parada (pedido) de una ruta en borrador.
+router.delete('/:routeId/stops/:stopId', authenticate, allowRoles(...STAFF), asyncHandler(async (req, res) => {
+  const route = await removeStop(Number(req.params.routeId), Number(req.params.stopId));
+  if (!route) return res.status(404).json({ error: 'Ruta no encontrada.' });
+  return res.json(route);
 }));
 
 export default router;

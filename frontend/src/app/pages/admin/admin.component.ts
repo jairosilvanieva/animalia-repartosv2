@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { ApiService, Order } from '../../core/api.service';
 import { PAYMENT_METHODS } from '../../shared/payment-methods';
 import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
+import { addressForMapsQuery } from '../../shared/address';
 
 @Component({
   selector: 'app-admin',
@@ -567,13 +568,14 @@ export class AdminComponent implements OnInit, OnDestroy {
   message = signal('');
   editing = signal<Order | null>(null);
   selected = new Set<number>();
-  filters = { date: new Date().toISOString().slice(0, 10), status: '', search: '' };
+  filters = { date: new Date().toISOString().slice(0, 10), status: 'todos', search: '' };
   editModel: Partial<Order> = {};
   editPaid = false;
   editItems: Array<{ product_name: string; quantity: number }> = [this.emptyItem()];
   paymentMethods = PAYMENT_METHODS;
   quickFilters = [
-    { label: 'Todos activos', value: '' },
+    { label: 'Todos', value: 'todos' },
+    { label: 'Activos', value: '' },
     { label: 'Pendientes', value: 'pendiente' },
     { label: 'En camino', value: 'en_camino' },
     { label: 'No entregados', value: 'no_entregado' },
@@ -758,11 +760,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   mapsUrl(order: Order) {
-    const parts = [order.address];
-    if (order.between_streets) parts.push(`entre ${order.between_streets}`);
-    parts.push(order.city || 'Mar del Plata');
-    parts.push('Argentina');
-    const query = parts.filter(Boolean).join(', ');
+    const query = addressForMapsQuery(order.address, order.city || 'Mar del Plata');
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
   }
 

@@ -341,6 +341,46 @@ export async function reorderStops(routeId, stopIds) {
   return getRoute(routeId);
 }
 
+// Sacar una parada de una ruta borrador. El pedido vuelve al panel.
+export async function removeStop(routeId, stopId) {
+  const route = await getRoute(routeId);
+  if (!route) return null;
+  if (route.status !== 'borrador') {
+    const error = new Error('Solo se pueden sacar paradas de rutas en borrador.');
+    error.status = 400;
+    throw error;
+  }
+
+  const target = route.stops.find((s) => s.id === stopId);
+  if (!target) {
+    const error = new Error('Esta parada no pertenece a esta ruta.');
+    error.status = 404;
+    throw error;
+  }
+
+  await withTransaction(async (connection) => {
+    // Borrar el route_stop
+    await connection.execute(
+      'DELETE FROM route_stops WHERE id = :stopId AND route_id = :routeId',
+      { stopId, routeId }
+    );
+
+    // Re-numerar el resto de las paradas para que queden 1, 2, 3...
+    const [remaining] = await connection.execute(
+      'SELECT id FROM route_stops WHERE route_id = :routeId ORDER BY stop_order',
+      { routeId }
+    );
+    for (let i = 0; i < remaining.length; i++) {
+      await connection.execute(
+        'UPDATE route_stops SET stop_order = :order WHERE id = :id',
+        { order: i + 1, id: remaining[i].id }
+      );
+    }
+  });
+
+  return getRoute(routeId);
+}
+
 export async function deleteRoute(routeId) {
   const route = await getRoute(routeId);
   if (!route) return false;

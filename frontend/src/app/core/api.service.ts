@@ -104,6 +104,10 @@ export class ApiService {
     return this.http.patch<any>(`${this.baseUrl}/routes/${routeId}/reorder`, { stop_ids });
   }
 
+  removeStopFromRoute(routeId: number, stopId: number) {
+    return this.http.delete<any>(`${this.baseUrl}/routes/${routeId}/stops/${stopId}`);
+  }
+
   deleteRoute(routeId: number) {
     return this.http.delete(`${this.baseUrl}/routes/${routeId}`);
   }

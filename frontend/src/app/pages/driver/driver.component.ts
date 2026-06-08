@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { buildWhatsappOpenChat } from '../../shared/whatsapp';
+import { addressForMapsQuery } from '../../shared/address';
 
 @Component({
   selector: 'app-driver',
@@ -278,13 +279,15 @@ export class DriverComponent implements OnInit {
     if (stop?.latitude && stop?.longitude) {
       return `https://www.google.com/maps/search/?api=1&query=${stop.latitude},${stop.longitude}`;
     }
-    return `https://www.google.com/maps/search/?api=1&query=${this.encode(stop.address)}`;
+    const query = addressForMapsQuery(stop?.address, stop?.city);
+    return `https://www.google.com/maps/search/?api=1&query=${this.encode(query)}`;
   }
   wazeUrl(stop: any) {
     if (stop?.latitude && stop?.longitude) {
       return `https://waze.com/ul?ll=${stop.latitude},${stop.longitude}&navigate=yes`;
     }
-    return `https://waze.com/ul?q=${this.encode(stop.address)}`;
+    const query = addressForMapsQuery(stop?.address, stop?.city);
+    return `https://waze.com/ul?q=${this.encode(query)}`;
   }
 
   visibleStops(route: any) {
