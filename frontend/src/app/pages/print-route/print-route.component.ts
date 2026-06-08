@@ -9,24 +9,14 @@ import { ApiService } from '../../core/api.service';
   imports: [CommonModule],
   template: `
     <section class="print-page" *ngIf="route() as r">
-      <div class="line">========================</div>
-      <div class="header">ANIMALIA REPARTOS</div>
-      <div class="centered">{{ r.name }}</div>
-      <div class="centered">{{ formatDate(r.route_date) }}</div>
-      <div class="centered">{{ r.stops?.length || 0 }} paradas</div>
-      <div class="line">========================</div>
-      <br>
+      <div class="topline">{{ r.name }} - {{ formatDate(r.route_date) }} - {{ r.stops?.length || 0 }} paradas</div>
 
       <div *ngFor="let stop of r.stops; let i = index" class="stop">
-        <div><b>{{ i + 1 }}. {{ stop.address }}</b></div>
+        <div class="addr">{{ i + 1 }}. {{ stop.address }}</div>
         <div *ngIf="stop.between_streets" class="indent">e/ {{ stop.between_streets }}</div>
         <div *ngIf="stop.customer_name" class="indent">{{ stop.customer_name }}</div>
-        <div *ngIf="stop.priority" class="indent priority">⭐ PRIORIDAD</div>
-        <br>
+        <div *ngIf="stop.priority" class="indent">⭐ PRIORIDAD</div>
       </div>
-
-      <div class="line">========================</div>
-      <br>
 
       <div class="screen-only no-print">
         <button (click)="reprint()">🖨 Reimprimir</button>
@@ -42,30 +32,29 @@ import { ApiService } from '../../core/api.service';
     }
     .print-page {
       font-family: 'Courier New', 'Consolas', monospace;
-      font-size: 8pt;
-      line-height: 1.15;
-      font-weight: bold;
-      width: 80mm;
-      max-width: 80mm;
+      font-size: 7.5pt;
+      line-height: 1.1;
+      font-weight: 900;
+      width: 72mm;
+      max-width: 72mm;
       margin: 20px auto;
-      padding: 6px;
+      padding: 4px;
       color: #000;
       background: white;
       box-shadow: 0 0 10px rgba(0,0,0,.15);
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
+      -webkit-text-stroke: 0.18px #000;
     }
-    .header {
-      font-weight: 900;
-      font-size: 10pt;
+    .topline {
       text-align: center;
+      font-weight: 900;
+      font-size: 8.5pt;
+      margin-bottom: 4px;
     }
-    .centered { text-align: center; }
-    .line { text-align: center; }
-    .indent { padding-left: 14px; }
-    .priority { font-weight: 900; }
-    .stop { page-break-inside: avoid; margin-bottom: 4px; }
-    br { line-height: 0.6; }
+    .indent { padding-left: 12px; }
+    .addr { font-weight: 900; }
+    .stop { page-break-inside: avoid; margin-bottom: 3px; }
     .no-print {
       margin-top: 20px;
       display: flex;

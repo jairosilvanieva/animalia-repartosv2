@@ -138,6 +138,20 @@ strong { font-weight: 600; }
   text-transform: uppercase;
 }
 
+/* Cuando se imprime: esconder la barra de navegacion y resetear el main */
+@media print {
+  app-root > .topbar { display: none !important; }
+  app-root > main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  body {
+    background: white !important;
+    margin: 0 !important;
+  }
+}
+
 /* scrollbars finos */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }

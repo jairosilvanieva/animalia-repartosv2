@@ -9,18 +9,12 @@ import { ApiService, Order } from '../../core/api.service';
   imports: [CommonModule],
   template: `
     <section class="print-page" *ngIf="order() as o">
-      <div class="line">========================</div>
-      <div class="header">ANIMALIA REPARTOS</div>
-      <div class="centered">Pedido #{{ o.id }}</div>
-      <div class="centered">{{ today }}</div>
-      <div class="line">========================</div>
-      <br>
+      <div class="topline">Pedido #{{ o.id }} - {{ today }}</div>
 
       <div class="section">CLIENTE</div>
       <div>{{ o.customer_name }}</div>
       <div *ngIf="o.dni">DNI: {{ o.dni }}</div>
       <div *ngIf="o.phone">Tel: {{ o.phone }}</div>
-      <br>
 
       <div class="section">ENTREGA</div>
       <div>{{ o.address }}</div>
@@ -28,21 +22,18 @@ import { ApiService, Order } from '../../core/api.service';
       <div>{{ o.city || 'Mar del Plata' }}<ng-container *ngIf="o.postal_code"> - {{ o.postal_code }}</ng-container></div>
       <div *ngIf="timeRange(o)">Horario: {{ timeRange(o) }}</div>
       <div *ngIf="o.scheduled_delivery_date">Reparto: {{ formatDate(o.scheduled_delivery_date) }}</div>
-      <br>
 
       <ng-container *ngIf="o.items && o.items.length">
         <div class="section">PRODUCTOS</div>
         <div *ngFor="let item of o.items">
           {{ formatQty(item.quantity) }} x {{ item.product_name }}
         </div>
-        <br>
       </ng-container>
 
       <div class="section">PAGO</div>
       <div *ngIf="o.subtotal && o.subtotal > 0">Subtotal:   $ {{ o.subtotal | number:'1.0-0' }}</div>
       <div *ngIf="o.discounts && o.discounts > 0">Descuentos: $ {{ o.discounts | number:'1.0-0' }}</div>
-      <div><b>TOTAL:      $ {{ (o.total || 0) | number:'1.0-0' }}</b></div>
-      <br>
+      <div>TOTAL:      $ {{ (o.total || 0) | number:'1.0-0' }}</div>
       <div *ngIf="o.payment_method">Forma: {{ o.payment_method }}</div>
       <div>Estado: {{ paymentLabel(o.payment_status) }}</div>
       <div *ngIf="o.payment_status !== 'cobrado' && o.amount_to_collect">
@@ -50,24 +41,14 @@ import { ApiService, Order } from '../../core/api.service';
       </div>
 
       <ng-container *ngIf="o.customer_note">
-        <br>
         <div class="section">NOTA CLIENTE</div>
         <div class="wrap">{{ o.customer_note }}</div>
       </ng-container>
 
       <ng-container *ngIf="o.internal_notes">
-        <br>
-        <div class="section">OBSERVACIONES INTERNAS</div>
+        <div class="section">OBSERVACIONES</div>
         <div class="wrap">{{ o.internal_notes }}</div>
       </ng-container>
-
-      <br>
-      <div class="line">------------------------</div>
-      <br>
-      <div>Firma: ________________</div>
-      <br><br>
-      <div class="line">========================</div>
-      <br>
 
       <div class="screen-only no-print">
         <button (click)="reprint()">🖨 Reimprimir</button>
@@ -83,33 +64,32 @@ import { ApiService, Order } from '../../core/api.service';
     }
     .print-page {
       font-family: 'Courier New', 'Consolas', monospace;
-      font-size: 8pt;
-      line-height: 1.15;
-      font-weight: bold;
-      width: 80mm;
-      max-width: 80mm;
+      font-size: 7.5pt;
+      line-height: 1.1;
+      font-weight: 900;
+      width: 72mm;
+      max-width: 72mm;
       margin: 20px auto;
-      padding: 6px;
+      padding: 4px;
       color: #000;
       background: white;
       box-shadow: 0 0 10px rgba(0,0,0,.15);
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
+      -webkit-text-stroke: 0.18px #000;
     }
-    .header {
-      font-weight: 900;
-      font-size: 10pt;
+    .topline {
       text-align: center;
+      font-weight: 900;
+      font-size: 8.5pt;
+      margin-bottom: 3px;
     }
-    .centered { text-align: center; }
     .section {
       font-weight: 900;
-      margin-top: 4px;
-      margin-bottom: 1px;
+      margin-top: 3px;
+      margin-bottom: 0;
     }
-    .line { text-align: center; }
     .wrap { white-space: pre-wrap; }
-    br { line-height: 0.6; }
     .no-print {
       margin-top: 20px;
       display: flex;
