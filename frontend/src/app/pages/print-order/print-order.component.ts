@@ -83,33 +83,39 @@ import { ApiService, Order } from '../../core/api.service';
     }
     .print-page {
       font-family: 'Courier New', 'Consolas', monospace;
-      font-size: 12pt;
-      line-height: 1.35;
+      font-size: 8pt;
+      line-height: 1.15;
+      font-weight: bold;
       width: 80mm;
       max-width: 80mm;
       margin: 20px auto;
-      padding: 10px;
-      color: black;
+      padding: 6px;
+      color: #000;
       background: white;
       box-shadow: 0 0 10px rgba(0,0,0,.15);
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
     .header {
-      font-weight: bold;
-      font-size: 14pt;
+      font-weight: 900;
+      font-size: 10pt;
       text-align: center;
     }
     .centered { text-align: center; }
     .section {
-      font-weight: bold;
-      margin-bottom: 2px;
+      font-weight: 900;
+      margin-top: 4px;
+      margin-bottom: 1px;
     }
     .line { text-align: center; }
     .wrap { white-space: pre-wrap; }
+    br { line-height: 0.6; }
     .no-print {
       margin-top: 20px;
       display: flex;
       gap: 8px;
       justify-content: center;
+      font-weight: normal;
     }
     .no-print button {
       padding: 8px 14px;
@@ -122,7 +128,7 @@ import { ApiService, Order } from '../../core/api.service';
     }
     @page {
       size: 80mm auto;
-      margin: 4mm;
+      margin: 2mm;
     }
     @media print {
       :host { background: white; }
@@ -132,6 +138,8 @@ import { ApiService, Order } from '../../core/api.service';
         margin: 0;
         padding: 0;
         box-shadow: none;
+        font-weight: bold;
+        color: #000 !important;
       }
       .no-print { display: none !important; }
     }

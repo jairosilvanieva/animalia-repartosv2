@@ -80,6 +80,7 @@ import { addressForMapsQuery } from '../../shared/address';
               <th>Cliente</th>
               <th>Domicilio</th>
               <th class="map-col"></th>
+              <th class="map-col"></th>
               <th>Tel</th>
               <th>Productos</th>
               <th>Hora</th>
@@ -117,6 +118,9 @@ import { addressForMapsQuery } from '../../shared/address';
               </td>
               <td class="map-col" (click)="$event.stopPropagation()">
                 <a class="map-btn" [href]="mapsUrl(order)" target="_blank" rel="noopener" title="Abrir en Google Maps">📍</a>
+              </td>
+              <td class="map-col" (click)="$event.stopPropagation()">
+                <a class="map-btn" [href]="'/imprimir/pedido/' + order.id" target="_blank" rel="noopener" title="Imprimir recibo">🖨</a>
               </td>
               <td class="mono small">{{ order.phone || '—' }}</td>
               <td class="prod" [title]="order.products_summary || ''">
