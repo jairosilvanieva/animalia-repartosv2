@@ -51,9 +51,16 @@ export function buildAnimaliaMessage(opts: MessageOpts = {}): string {
   return lines.join('\n');
 }
 
-/** URL de WhatsApp con mensaje prellenado (admin / route-review). */
+/** URL de WhatsApp con mensaje prellenado (admin / route-review).
+ *
+ * Usamos api.whatsapp.com/send en lugar de wa.me porque wa.me tiene
+ * un bug conocido decodificando emojis (4 bytes UTF-8) cuando vienen
+ * en la URL — el receptor termina viendo el caracter de reemplazo �.
+ * api.whatsapp.com los procesa correctamente.
+ */
 export function buildWhatsappUrl(phone: string | undefined | null, message: string): string {
-  return `https://wa.me/${cleanPhone(phone || '')}?text=${encodeURIComponent(message)}`;
+  const cleanedPhone = cleanPhone(phone || '');
+  return `https://api.whatsapp.com/send?phone=${cleanedPhone}&text=${encodeURIComponent(message)}`;
 }
 
 /**
