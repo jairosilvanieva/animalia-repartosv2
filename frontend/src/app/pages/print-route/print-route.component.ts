@@ -32,11 +32,11 @@ import { ApiService } from '../../core/api.service';
     }
     .print-page {
       font-family: 'Courier New', 'Consolas', monospace;
-      font-size: 7.5pt;
-      line-height: 1.1;
+      font-size: 10pt;
+      line-height: 1.2;
       font-weight: 900;
-      width: 72mm;
-      max-width: 72mm;
+      width: 76mm;
+      max-width: 76mm;
       margin: 20px auto;
       padding: 4px;
       color: #000;
@@ -49,7 +49,7 @@ import { ApiService } from '../../core/api.service';
     .topline {
       text-align: center;
       font-weight: 900;
-      font-size: 8.5pt;
+      font-size: 12pt;
       margin-bottom: 4px;
     }
     .indent { padding-left: 12px; }

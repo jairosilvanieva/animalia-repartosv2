@@ -6,6 +6,7 @@ import { ApiService, Order } from '../../core/api.service';
 import { PAYMENT_METHODS } from '../../shared/payment-methods';
 import { buildAnimaliaMessage, buildWhatsappUrl } from '../../shared/whatsapp';
 import { addressForMapsQuery } from '../../shared/address';
+import { orderDisplayNumber } from '../../shared/order-number';
 
 @Component({
   selector: 'app-admin',
@@ -88,6 +89,7 @@ import { addressForMapsQuery } from '../../shared/address';
               <th class="num">Valor</th>
               <th class="num">A cobrar</th>
               <th>Estado</th>
+              <th class="fact-col">Fact.</th>
               <th>Origen</th>
             </tr>
           </thead>
@@ -110,7 +112,7 @@ import { addressForMapsQuery } from '../../shared/address';
               <td class="mono">{{ shortDate(order.scheduled_delivery_date) }}</td>
               <td>
                 <div class="cell-strong">{{ order.customer_name }}</div>
-                <div class="cell-sub">#{{ order.id }} <span *ngIf="order.dni">· DNI {{ order.dni }}</span></div>
+                <div class="cell-sub">{{ displayNumber(order) }} <span *ngIf="order.dni">· DNI {{ order.dni }}</span></div>
               </td>
               <td>
                 <div>{{ order.address }}</div>
@@ -138,6 +140,9 @@ import { addressForMapsQuery } from '../../shared/address';
                   {{ statusLabel(order.status) }}
                 </span>
               </td>
+              <td class="fact-col" (click)="$event.stopPropagation()">
+                <input type="checkbox" class="fact-cb" [checked]="!!order.facturado" (change)="toggleFacturado(order)" [title]="order.facturado ? 'Pasado al sistema (click para desmarcar)' : 'Marcar como pasado al sistema'" />
+              </td>
               <td class="small muted">{{ order.priority ? '★ ' : '' }}{{ originLabel(order) }}</td>
             </tr>
           </tbody>
@@ -152,7 +157,7 @@ import { addressForMapsQuery } from '../../shared/address';
         <form (ngSubmit)="saveEdit()">
           <div class="drawer-head">
             <div>
-              <span class="eyebrow">Pedido #{{ order.id }}</span>
+              <span class="eyebrow">Pedido {{ displayNumber(order) }}</span>
               <h2>Editar pedido</h2>
             </div>
             <button class="icon" type="button" (click)="closeEdit()">X</button>
@@ -299,6 +304,8 @@ import { addressForMapsQuery } from '../../shared/address';
 
     .chips { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
     .map-col { width: 36px; text-align: center; padding-left: 0 !important; padding-right: 0 !important; }
+    .fact-col { width: 44px; text-align: center; padding-left: 0 !important; padding-right: 0 !important; font-size: 10px; letter-spacing: .04em; text-transform: uppercase; }
+    .fact-cb { width: 18px; height: 18px; accent-color: var(--st-entregado); cursor: pointer; }
     .map-btn {
       display: inline-grid; place-items: center;
       width: 26px; height: 26px;
@@ -766,6 +773,24 @@ export class AdminComponent implements OnInit, OnDestroy {
   mapsUrl(order: Order) {
     const query = addressForMapsQuery(order.address, order.city || 'Mar del Plata');
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  }
+
+  displayNumber(order: Order) {
+    return orderDisplayNumber(order as any);
+  }
+
+  toggleFacturado(order: Order) {
+    const newVal = !order.facturado;
+    // Update optimistically
+    (order as any).facturado = newVal;
+    this.api.updateOrder(order.id, { facturado: newVal }).subscribe({
+      next: () => { /* mantener el optimista */ },
+      error: () => {
+        // Revertir si falla
+        (order as any).facturado = !newVal;
+        this.message.set('No se pudo actualizar Facturado.');
+      }
+    });
   }
 
   originLabel(order: Order) {

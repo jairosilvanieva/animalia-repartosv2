@@ -3,6 +3,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService, Order } from '../../core/api.service';
+import { orderDisplayNumber } from '../../shared/order-number';
 
 @Component({
   selector: 'app-history',
@@ -49,7 +50,7 @@ import { ApiService, Order } from '../../core/api.service';
           <h2>Pedidos</h2>
           <article class="row order" *ngFor="let order of orders()" [ngClass]="'status-' + order.status">
             <div>
-              <strong>#{{ order.id }} {{ order.customer_name }}</strong>
+              <strong>{{ displayNumber(order) }} {{ order.customer_name }}</strong>
               <span>{{ order.address }}</span>
               <small>{{ order.products_summary || 'Sin productos cargados' }}</small>
               <small>{{ statusLabel(order.status) }} - Total $ {{ orderTotal(order) | number:'1.2-2' }}</small>
@@ -187,6 +188,10 @@ export class HistoryComponent implements OnInit {
         this.routes.set([...fin, ...can]);
       });
     });
+  }
+
+  displayNumber(order: Order) {
+    return orderDisplayNumber(order as any);
   }
 
   countByStatus(status: string) {

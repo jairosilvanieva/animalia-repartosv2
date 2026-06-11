@@ -51,6 +51,7 @@ CREATE TABLE orders (
   time_window_start TIME NULL,
   time_window_end TIME NULL,
   priority BOOLEAN NOT NULL DEFAULT FALSE,
+  facturado BOOLEAN NOT NULL DEFAULT FALSE,
   status ENUM('pendiente', 'en_camino', 'entregado', 'no_entregado', 'cancelado') NOT NULL DEFAULT 'pendiente',
   woocommerce_status VARCHAR(80) NULL,
   store_id INT NULL,

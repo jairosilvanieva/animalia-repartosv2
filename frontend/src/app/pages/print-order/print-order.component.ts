@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ApiService, Order } from '../../core/api.service';
+import { orderDisplayNumber } from '../../shared/order-number';
 
 @Component({
   selector: 'app-print-order',
@@ -9,7 +10,7 @@ import { ApiService, Order } from '../../core/api.service';
   imports: [CommonModule],
   template: `
     <section class="print-page" *ngIf="order() as o">
-      <div class="topline">Pedido #{{ o.id }} - {{ today }}</div>
+      <div class="topline">Pedido {{ displayNumber(o) }} - {{ today }}</div>
 
       <div class="section">CLIENTE</div>
       <div>{{ o.customer_name }}</div>
@@ -64,11 +65,11 @@ import { ApiService, Order } from '../../core/api.service';
     }
     .print-page {
       font-family: 'Courier New', 'Consolas', monospace;
-      font-size: 7.5pt;
-      line-height: 1.1;
+      font-size: 10pt;
+      line-height: 1.2;
       font-weight: 900;
-      width: 72mm;
-      max-width: 72mm;
+      width: 76mm;
+      max-width: 76mm;
       margin: 20px auto;
       padding: 4px;
       color: #000;
@@ -81,8 +82,8 @@ import { ApiService, Order } from '../../core/api.service';
     .topline {
       text-align: center;
       font-weight: 900;
-      font-size: 8.5pt;
-      margin-bottom: 3px;
+      font-size: 12pt;
+      margin-bottom: 4px;
     }
     .section {
       font-weight: 900;
@@ -146,6 +147,8 @@ export class PrintOrderComponent implements OnInit {
 
   reprint() { window.print(); }
   close() { window.close(); }
+
+  displayNumber(o: Order) { return orderDisplayNumber(o as any); }
 
   formatDate(value?: string) {
     if (!value) return '';

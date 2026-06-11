@@ -193,6 +193,7 @@ export async function updateOrder(id, payload) {
     'time_window_start',
     'time_window_end',
     'priority',
+    'facturado',
     'status',
     'store_id',
     'latitude',

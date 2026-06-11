@@ -4,6 +4,9 @@ import { environment } from '../../environments/environment';
 
 export interface Order {
   id: number;
+  origin?: 'manual' | 'woocommerce';
+  order_number?: string | null;
+  facturado?: boolean | number;
   scheduled_delivery_date?: string;
   current_route_id?: number | null;
   current_route_status?: 'borrador' | 'activa' | null;
