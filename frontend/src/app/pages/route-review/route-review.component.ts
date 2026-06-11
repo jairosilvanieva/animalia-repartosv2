@@ -23,7 +23,6 @@ import { addressForMapsQuery } from '../../shared/address';
         <div class="actions">
           <a [href]="mapsRouteUrl(currentRoute)" target="_blank">Ver ruta en Maps</a>
           <a [href]="'/imprimir/ruta/' + currentRoute.id" target="_blank" rel="noopener" title="Vista de impresión térmica">🖨 Imprimir</a>
-          <button type="button" *ngIf="currentRoute.status !== 'finalizada'" (click)="notifyAll(currentRoute)">Avisar a todos</button>
           <button *ngIf="currentRoute.status === 'borrador'" (click)="start(currentRoute.id)">Ruta cargada a camioneta</button>
           <button type="button" *ngIf="currentRoute.status === 'activa'" [disabled]="!canFinish(currentRoute)" (click)="finish(currentRoute.id)">Finalizar ruta</button>
           <a *ngIf="currentRoute.status === 'activa'" [routerLink]="'/chofer/' + currentRoute.id">Vista chofer</a>
@@ -355,14 +354,6 @@ export class RouteReviewComponent implements OnInit {
     return route?.status === 'activa'
       && (route?.stops || []).length > 0
       && !(route?.stops || []).some((stop: any) => ['pendiente', 'en_camino'].includes(stop.status));
-  }
-
-  notifyAll(route: any) {
-    (route?.stops || [])
-      .filter((stop: any) => stop.phone)
-      .forEach((stop: any, index: number) => {
-        window.setTimeout(() => window.open(this.whatsappUrl(stop), '_blank'), index * 350);
-      });
   }
 
   mapsRouteUrl(route: any) {
