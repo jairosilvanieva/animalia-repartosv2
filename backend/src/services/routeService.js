@@ -395,7 +395,7 @@ export async function deleteRoute(routeId) {
 
 export async function updateStop(routeId, stopId, payload, currentUser) {
   const status = payload.status;
-  const allowed = ['pendiente', 'en_camino', 'entregado', 'no_entregado'];
+  const allowed = ['pendiente', 'en_camino', 'entregado', 'no_entregado', 'faltan_productos'];
   if (!allowed.includes(status)) {
     const error = new Error('Estado de parada invalido.');
     error.status = 400;

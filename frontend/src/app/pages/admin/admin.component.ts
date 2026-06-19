@@ -590,6 +590,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     { label: 'Pendientes', value: 'pendiente' },
     { label: 'En camino', value: 'en_camino' },
     { label: 'No entregados', value: 'no_entregado' },
+    { label: 'Faltan productos', value: 'faltan_productos' },
     { label: 'Finalizados', value: 'finalizados' }
   ];
   editStatuses = [
@@ -597,6 +598,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     { label: 'En camino', value: 'en_camino' },
     { label: 'Entregado', value: 'entregado' },
     { label: 'No entregado', value: 'no_entregado' },
+    { label: 'Faltan productos', value: 'faltan_productos' },
     { label: 'Cancelado', value: 'cancelado' }
   ];
   private refreshTimer?: number;
@@ -744,7 +746,8 @@ export class AdminComponent implements OnInit, OnDestroy {
       en_camino: '#38bdf8',
       entregado: '#22c55e',
       no_entregado: '#eab308',
-      cancelado: '#ef4444'
+      cancelado: '#ef4444',
+      faltan_productos: '#8b5cf6'
     };
     return map[status || ''] || '#8a8f99';
   }
@@ -755,7 +758,8 @@ export class AdminComponent implements OnInit, OnDestroy {
       en_camino: 'rgba(56,189,248,.10)',
       entregado: 'rgba(34,197,94,.10)',
       no_entregado: 'rgba(234,179,8,.10)',
-      cancelado: 'rgba(239,68,68,.10)'
+      cancelado: 'rgba(239,68,68,.10)',
+      faltan_productos: 'rgba(139,92,246,.10)'
     };
     return map[status || ''] || 'rgba(138,143,153,.10)';
   }
@@ -818,7 +822,8 @@ export class AdminComponent implements OnInit, OnDestroy {
       en_camino: 'En camino',
       entregado: 'Entregado',
       no_entregado: 'No entregado',
-      cancelado: 'Cancelado'
+      cancelado: 'Cancelado',
+      faltan_productos: 'Faltan productos'
     };
     return labels[status || ''] || status || 'Sin estado';
   }

@@ -17,12 +17,22 @@ import { orderDisplayNumber } from '../../shared/order-number';
       <div *ngIf="o.dni">DNI: {{ o.dni }}</div>
       <div *ngIf="o.phone">Tel: {{ o.phone }}</div>
 
-      <div class="section">ENTREGA</div>
-      <div>{{ o.address }}</div>
-      <div *ngIf="o.between_streets">e/ {{ o.between_streets }}</div>
-      <div>{{ o.city || 'Mar del Plata' }}<ng-container *ngIf="o.postal_code"> - {{ o.postal_code }}</ng-container></div>
-      <div *ngIf="timeRange(o)">Horario: {{ timeRange(o) }}</div>
-      <div *ngIf="o.scheduled_delivery_date">Reparto: {{ formatDate(o.scheduled_delivery_date) }}</div>
+      <!-- RETIRO EN LOCAL -->
+      <ng-container *ngIf="isRetiro(o)">
+        <div class="section">RETIRO EN LOCAL</div>
+        <div>{{ o.store_name || 'Animalia' }}</div>
+        <div *ngIf="o.scheduled_delivery_date">Fecha: {{ formatDate(o.scheduled_delivery_date) }}</div>
+      </ng-container>
+
+      <!-- ENTREGA A DOMICILIO -->
+      <ng-container *ngIf="!isRetiro(o)">
+        <div class="section">ENTREGA</div>
+        <div>{{ o.address }}</div>
+        <div *ngIf="o.between_streets">e/ {{ o.between_streets }}</div>
+        <div>{{ o.city || 'Mar del Plata' }}<ng-container *ngIf="o.postal_code"> - {{ o.postal_code }}</ng-container></div>
+        <div *ngIf="timeRange(o)">Horario: {{ timeRange(o) }}</div>
+        <div *ngIf="o.scheduled_delivery_date">Reparto: {{ formatDate(o.scheduled_delivery_date) }}</div>
+      </ng-container>
 
       <ng-container *ngIf="o.items && o.items.length">
         <div class="section">PRODUCTOS</div>
@@ -168,6 +178,10 @@ export class PrintOrderComponent implements OnInit {
     if (s) return `desde ${s}`;
     if (e) return `hasta ${e}`;
     return '';
+  }
+
+  isRetiro(o: any) {
+    return o.tipo === 'retiro' || String(o.delivery_mode || '').toLowerCase().includes('retiro');
   }
 
   paymentLabel(status?: string) {

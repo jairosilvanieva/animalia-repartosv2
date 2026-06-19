@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { HomeComponent } from './pages/home/home.component';
 import { AdminComponent } from './pages/admin/admin.component';
 import { ManualOrderComponent } from './pages/manual-order/manual-order.component';
 import { DriverComponent } from './pages/driver/driver.component';
@@ -10,26 +11,33 @@ import { RoutesComponent } from './pages/routes/routes.component';
 import { UsersComponent } from './pages/users/users.component';
 import { PrintOrderComponent } from './pages/print-order/print-order.component';
 import { PrintRouteComponent } from './pages/print-route/print-route.component';
+import { RetirosComponent } from './pages/retiros/retiros.component';
 import { adminGuard, authGuard, staffGuard } from './core/auth.guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
 
-  // Staff (administrador o local)
-  { path: '', component: AdminComponent, canActivate: [staffGuard] },
+  // Home — selector de módulo
+  { path: '', component: HomeComponent, canActivate: [staffGuard] },
+
+  // Módulo Repartos
+  { path: 'repartos', component: AdminComponent, canActivate: [staffGuard] },
   { path: 'cargar', component: ManualOrderComponent, canActivate: [staffGuard] },
   { path: 'rutas', component: RoutesComponent, canActivate: [staffGuard] },
   { path: 'historial', component: HistoryComponent, canActivate: [staffGuard] },
   { path: 'ruta/:routeId', component: RouteReviewComponent, canActivate: [staffGuard] },
 
+  // Módulo Retiros
+  { path: 'retiros', component: RetirosComponent, canActivate: [staffGuard] },
+
   // Solo administradores
   { path: 'usuarios', component: UsersComponent, canActivate: [adminGuard] },
 
-  // Impresion termica (abren en pestana nueva con auto-print)
+  // Impresión térmica
   { path: 'imprimir/pedido/:id', component: PrintOrderComponent, canActivate: [staffGuard] },
   { path: 'imprimir/ruta/:id', component: PrintRouteComponent, canActivate: [staffGuard] },
 
-  // Choferes (y tambien staff puede ver para supervisar)
+  // Choferes
   { path: 'chofer', component: DriverRoutesComponent, canActivate: [authGuard] },
   { path: 'chofer/:routeId', component: DriverComponent, canActivate: [authGuard] },
 

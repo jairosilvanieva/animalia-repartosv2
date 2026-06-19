@@ -31,6 +31,13 @@ export async function listOrders(filters = {}) {
   } else {
     where.push("o.status NOT IN ('entregado', 'cancelado')");
   }
+  if (filters.tipo) {
+    where.push('o.tipo = :tipo');
+    params.tipo = filters.tipo;
+  } else {
+    // Por defecto solo muestra repartos para no mezclar con retiros.
+    where.push("o.tipo = 'reparto'");
+  }
   if (filters.store_id) {
     where.push('o.store_id = :storeId');
     params.storeId = Number(filters.store_id);
@@ -103,24 +110,26 @@ export async function createManualOrder(payload) {
   const paymentMethod = normalizePaymentMethod(payload.forma_pago);
   const total = Number(payload.total ?? payload.importe_a_cobrar ?? 0);
   const paymentStatus = payload.pagado ? 'cobrado' : 'a_cobrar';
+  const tipo = payload.tipo === 'retiro' ? 'retiro' : 'reparto';
 
   return createOrder({
     origin: 'manual',
+    tipo,
     order_date: new Date(),
     scheduled_delivery_date: payload.fecha_reparto || payload.fecha || today(),
     customer_name: payload.cliente,
     phone: payload.telefono,
-    address: payload.domicilio,
+    address: payload.domicilio || (tipo === 'retiro' ? 'Retiro en local' : ''),
     between_streets: payload.entre_calles,
     internal_notes: payload.observaciones,
     payment_method: paymentMethod,
     payment_status: paymentStatus,
-    amount_to_collect: payload.pagado ? 0 : total,
+    amount_to_collect: paymentStatus === 'a_cobrar' ? total : 0,
     total,
     time_condition: null,
     time_window_start: payload.rango_horario_desde || null,
     time_window_end: payload.rango_horario_hasta || null,
-    store_id: 2,
+    store_id: payload.store_id ? Number(payload.store_id) : (tipo === 'reparto' ? 2 : null),
     latitude: payload.latitude || null,
     longitude: payload.longitude || null,
     status: payload.estado || 'pendiente',
@@ -144,8 +153,14 @@ export async function createWooCommerceOrder(payload) {
   const paymentStatus = classifyPayment(payload.metodo_pago);
   const amountToCollect = paymentStatus === 'a_cobrar' ? total : 0;
 
+  const tipo = payload.tipo === 'retiro' ? 'retiro' : 'reparto';
+  const storeId = tipo === 'retiro'
+    ? resolveStoreFromShipping(payload.modalidad_envio)
+    : null;
+
   return createOrder({
     origin: 'woocommerce',
+    tipo,
     woocommerce_order_id: payload.order_id,
     order_number: payload.order_number,
     order_date: payload.fecha || new Date(),
@@ -168,6 +183,7 @@ export async function createWooCommerceOrder(payload) {
     longitude: payload.longitude || null,
     status: 'pendiente',
     woocommerce_status: payload.estado_woocommerce,
+    store_id: storeId,
     items: normalizeWooItems(payload.productos)
   });
 }
@@ -240,6 +256,7 @@ async function createOrder(order) {
   const orderId = await withTransaction(async (connection) => {
     const params = cleanParams({
       woocommerce_order_id: null,
+      tipo: 'reparto',
       order_number: null,
       scheduled_delivery_date: today(),
       dni: null,
@@ -269,13 +286,13 @@ async function createOrder(order) {
 
     const [result] = await connection.execute(
       `INSERT INTO orders (
-        origin, woocommerce_order_id, order_number, order_date, scheduled_delivery_date, customer_name, phone, dni,
+        origin, tipo, woocommerce_order_id, order_number, order_date, scheduled_delivery_date, customer_name, phone, dni,
         address, between_streets, city, postal_code, customer_note, internal_notes,
         payment_method, payment_status, amount_to_collect, subtotal, discounts, total,
         delivery_mode, time_condition, time_window_start, time_window_end, priority, status, woocommerce_status,
         store_id, latitude, longitude
       ) VALUES (
-        :origin, :woocommerce_order_id, :order_number, :order_date, :scheduled_delivery_date, :customer_name, :phone, :dni,
+        :origin, :tipo, :woocommerce_order_id, :order_number, :order_date, :scheduled_delivery_date, :customer_name, :phone, :dni,
         :address, :between_streets, :city, :postal_code, :customer_note, :internal_notes,
         :payment_method, :payment_status, :amount_to_collect, :subtotal, :discounts, :total,
         :delivery_mode, :time_condition, :time_window_start, :time_window_end, :priority, :status, :woocommerce_status,
@@ -303,6 +320,16 @@ async function createOrder(order) {
   });
 
   return getOrder(orderId);
+}
+
+// Mapea el nombre del método de envío de WooCommerce al store_id correspondiente.
+// Los nombres exactos deben coincidir con los configurados en WooCommerce.
+function resolveStoreFromShipping(shippingMethod = '') {
+  const m = String(shippingMethod || '').toLowerCase();
+  if (m.includes('sarmiento') || m.includes('garay')) return 2;
+  if (m.includes('constitucion') || m.includes('constitución')) return 1;
+  if (m.includes('guemes') || m.includes('güemes') || m.includes('roca')) return 3;
+  return null;
 }
 
 function normalizeManualItems(productos) {

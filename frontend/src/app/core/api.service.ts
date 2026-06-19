@@ -32,6 +32,9 @@ export interface Order {
   time_window_start?: string;
   time_window_end?: string;
   priority: boolean;
+  tipo?: string;
+  store_id?: number;
+  store_name?: string;
   items_count?: number;
   products_summary?: string;
   items?: OrderItem[];

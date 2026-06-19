@@ -37,13 +37,14 @@ const wooOrderSchema = z.object({
   descuentos: z.coerce.number().optional(),
   total: z.coerce.number().optional(),
   modalidad_envio: z.string().optional(),
-  direccion_envio: z.string().min(1),
+  direccion_envio: z.string().default('Retiro en local'),
   ciudad: z.string().optional(),
   codigo_postal: z.string().optional(),
   nota: z.string().optional(),
   estado_woocommerce: z.string().optional(),
   requiere_corroborrar_pago: z.boolean().default(false),
   pagado: z.boolean().default(false),
+  tipo: z.enum(['reparto', 'retiro']).default('reparto'),
   origen: z.literal('woocommerce')
 });
 
@@ -61,17 +62,19 @@ router.post('/manual', authenticate, allowRoles(...STAFF), asyncHandler(async (r
 router.post('/from-woocommerce', authenticateInternalApi, asyncHandler(async (req, res) => {
   const input = wooOrderSchema.parse(req.body);
 
-  // 1) Bloquear retiros en local: no entran al sistema de repartos.
   const modalidad = String(input.modalidad_envio || '').toLowerCase();
-  if (modalidad.includes('retiro') || modalidad.includes('sucursal') || modalidad.includes('pickup') || modalidad === 'retiro_local') {
-    return res.status(200).json({ skipped: true, reason: 'retiro_local', message: 'Pedido omitido: retiro en local.' });
+  const esRetiro = input.tipo === 'retiro' || modalidad.includes('retiro') || modalidad.includes('sucursal');
+
+  if (!esRetiro) {
+    // Solo para repartos: bloquear envíos fuera de MDP (CPs no empiezan con 76).
+    const cp = String(input.codigo_postal || '').replace(/^B?/i, '').trim();
+    if (cp && !/^76\d{2}$/.test(cp)) {
+      return res.status(200).json({ skipped: true, reason: 'fuera_mdp', message: `Pedido omitido: CP ${cp} fuera de Mar del Plata.` });
+    }
   }
 
-  // 2) Bloquear envíos fuera de MDP (CPs no empiezan con 76).
-  const cp = String(input.codigo_postal || '').replace(/^B?/i, '').trim();
-  if (cp && !/^76\d{2}$/.test(cp)) {
-    return res.status(200).json({ skipped: true, reason: 'fuera_mdp', message: `Pedido omitido: CP ${cp} fuera de Mar del Plata.` });
-  }
+  // Normalizar tipo según modalidad en caso de que el snippet no lo mande explícito.
+  if (esRetiro) input.tipo = 'retiro';
 
   const order = await createWooCommerceOrder(input);
   res.status(201).json(order);

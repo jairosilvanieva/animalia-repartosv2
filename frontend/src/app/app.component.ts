@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { NgIf } from '@angular/common';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { RouterLink, RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { AuthService } from './core/auth.service';
+import { filter } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -14,14 +15,28 @@ import { AuthService } from './core/auth.service';
         <span>Repartos - Base Sarmiento 2790</span>
       </div>
       <nav>
-        <ng-container *ngIf="auth.isStaff()">
-          <a routerLink="/">Pedidos</a>
-          <a routerLink="/cargar">Carga manual</a>
-          <a routerLink="/rutas">Rutas</a>
-          <a routerLink="/historial">Historial</a>
-          <a routerLink="/usuarios" *ngIf="auth.isAdmin()">Usuarios</a>
+        <!-- En home: solo link de volver si hace falta + salir -->
+        <ng-container *ngIf="auth.isStaff() && !isHome">
+          <a routerLink="/" class="back">← Inicio</a>
+
+          <!-- Links de Repartos -->
+          <ng-container *ngIf="inRepartos">
+            <a routerLink="/repartos">Pedidos</a>
+            <a routerLink="/cargar">Carga manual</a>
+            <a routerLink="/rutas">Rutas</a>
+            <a routerLink="/historial">Historial</a>
+          </ng-container>
+
+          <!-- Links de Retiros -->
+          <ng-container *ngIf="inRetiros">
+            <a routerLink="/retiros">Retiros</a>
+          </ng-container>
+
+          <!-- Usuarios solo admin, en cualquier módulo -->
+          <a routerLink="/usuarios" *ngIf="auth.isAdmin() && (inRepartos || inRetiros)">Usuarios</a>
         </ng-container>
-        <a routerLink="/chofer" *ngIf="auth.isDriver() || auth.isStaff()">Vista chofer</a>
+
+        <a routerLink="/chofer" *ngIf="auth.isDriver() || (auth.isStaff() && inRepartos)">Vista chofer</a>
         <a routerLink="/login" *ngIf="!auth.user()">Ingresar</a>
         <button class="secondary" *ngIf="auth.user()" (click)="auth.logout()">Salir</button>
       </nav>
@@ -79,6 +94,7 @@ import { AuthService } from './core/auth.service';
       transition: background .15s, color .15s;
     }
     nav a:hover { background: var(--panel-2); color: var(--texto); }
+    nav a.back { color: var(--muted); font-size: .78rem; }
     nav button { margin-left: .35rem; }
     main {
       max-width: 1280px;
@@ -92,5 +108,16 @@ import { AuthService } from './core/auth.service';
   `]
 })
 export class AppComponent {
-  constructor(public auth: AuthService) {}
+  isHome = true;
+  inRepartos = false;
+  inRetiros = false;
+
+  constructor(public auth: AuthService, private router: Router) {
+    this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe((e: any) => {
+      const url: string = e.urlAfterRedirects || e.url;
+      this.isHome    = url === '/' || url === '';
+      this.inRepartos = url.startsWith('/repartos') || url.startsWith('/cargar') || url.startsWith('/rutas') || url.startsWith('/historial') || url.startsWith('/ruta/') || url.startsWith('/imprimir/');
+      this.inRetiros  = url.startsWith('/retiros');
+    });
+  }
 }
