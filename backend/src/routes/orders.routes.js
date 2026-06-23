@@ -56,6 +56,8 @@ router.get('/', authenticate, allowRoles(...STAFF), asyncHandler(async (req, res
 
 router.post('/manual', authenticate, allowRoles(...STAFF), asyncHandler(async (req, res) => {
   const input = manualOrderSchema.parse(req.body);
+  // Si el usuario tiene store_id (operador de local), lo usamos aunque el payload traiga otro.
+  if (req.user?.store_id) input.store_id = req.user.store_id;
   res.status(201).json(await createManualOrder(input));
 }));
 

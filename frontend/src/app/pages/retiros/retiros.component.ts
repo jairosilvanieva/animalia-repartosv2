@@ -35,7 +35,7 @@ const STORES = [
       <div class="toolbar">
         <div class="field">
           <span class="ico">📅</span>
-          <input type="date" [(ngModel)]="filters.date" (change)="load()" />
+          <input type="month" [(ngModel)]="filters.month" (change)="load()" />
         </div>
         <div class="field grow">
           <span class="ico">⌕</span>
@@ -371,7 +371,7 @@ export class RetirosComponent implements OnInit, OnDestroy {
   isNew   = false;
 
   filters = {
-    date:     new Date().toISOString().slice(0, 10),
+    month:    new Date().toISOString().slice(0, 7),
     search:   '',
     store_id: null as number | null,
     status:   '',
@@ -391,7 +391,7 @@ export class RetirosComponent implements OnInit, OnDestroy {
   load() {
     this.loading.set(true);
     const f: Record<string, string> = { tipo: 'retiro' };
-    if (this.filters.date)     f['date']     = this.filters.date;
+    if (this.filters.month)    f['month']    = this.filters.month;
     if (this.filters.search)   f['search']   = this.filters.search;
     if (this.filters.store_id) f['store_id'] = String(this.filters.store_id);
     if (this.filters.status === 'todos')    f['status'] = 'todos';

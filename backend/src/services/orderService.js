@@ -17,7 +17,10 @@ export async function listOrders(filters = {}) {
   const where = [];
   const params = {};
 
-  if (filters.date) {
+  if (filters.month) {
+    where.push("DATE_FORMAT(o.scheduled_delivery_date, '%Y-%m') = :month");
+    params.month = filters.month;
+  } else if (filters.date) {
     where.push('o.scheduled_delivery_date = :date');
     params.date = filters.date;
   }
