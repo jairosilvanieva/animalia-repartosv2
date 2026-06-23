@@ -430,7 +430,7 @@ export class RetirosComponent implements OnInit, OnDestroy {
     this.editModel = {
       status: 'pendiente',
       store_id: null,
-      scheduled_delivery_date: this.filters.date,
+      scheduled_delivery_date: new Date().toISOString().slice(0, 10),
       customer_name: '',
       phone: '',
       dni: '',
@@ -542,7 +542,7 @@ export class RetirosComponent implements OnInit, OnDestroy {
   private prepareEdit(order: Order) {
     this.editModel = {
       ...order,
-      scheduled_delivery_date: (order.scheduled_delivery_date || '').slice(0, 10) || this.filters.date,
+      scheduled_delivery_date: (order.scheduled_delivery_date || '').slice(0, 10) || new Date().toISOString().slice(0, 10),
       total: Number(order.total || order.amount_to_collect || 0),
     };
     this.editPaid  = order.payment_status === 'cobrado';
