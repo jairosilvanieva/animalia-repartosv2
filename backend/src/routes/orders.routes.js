@@ -20,7 +20,9 @@ const manualOrderSchema = z.object({
   rango_horario_desde: z.string().optional(),
   rango_horario_hasta: z.string().optional(),
   observaciones: z.string().optional(),
-  estado: z.string().optional()
+  estado: z.string().optional(),
+  tipo: z.enum(['reparto', 'retiro']).default('reparto'),
+  store_id: z.coerce.number().optional()
 });
 
 const wooOrderSchema = z.object({
