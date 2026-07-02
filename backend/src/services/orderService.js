@@ -149,7 +149,7 @@ export async function createWooCommerceOrder(payload) {
     return getOrder(existing[0].id);
   }
 
-  const paymentMethod = normalizePaymentMethod(payload.metodo_pago);
+  const paymentMethod = normalizePaymentMethod(payload.metodo_pago, payload.fecha);
   const total = Number(payload.total || 0);
 
   // Clasificación robusta basada en el método de pago, no en el flag del cliente.
@@ -363,13 +363,22 @@ function normalizeWooItems(productos) {
   }));
 }
 
-function normalizePaymentMethod(method = '') {
+function normalizePaymentMethod(method = '', orderDate = null) {
   const value = String(method || '').trim();
   const lower = value.toLowerCase();
 
   if (!value) return null;
   if (lower.includes('modo') && lower.includes('bbva')) return 'BBVA + MODO';
-  if (lower.includes('promo bbva') || (lower.includes('bbva') && lower.includes('martes'))) return 'BBVA tarjeta - 40%';
+
+  if (lower.includes('promo bbva')) {
+    // Martes (2) y Jueves (4) → 40%. Viernes (5) y Sábado (6) → 10% + 3 cuotas.
+    const date = orderDate ? new Date(orderDate) : new Date();
+    const dow = date.getDay(); // 0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb
+    if (dow === 5 || dow === 6) return 'BBVA 10% + 3 cuotas';
+    return 'BBVA tarjeta - 40%';
+  }
+
+  if (lower.includes('bbva') && lower.includes('martes')) return 'BBVA tarjeta - 40%';
   if (lower.includes('bbva') && lower.includes('10%')) return 'BBVA 10% + 3 cuotas';
   if (lower.includes('galicia') && lower.includes('modo')) return 'Galicia + MODO';
   if (lower.includes('galicia')) return 'Galicia tarjeta fisica';
