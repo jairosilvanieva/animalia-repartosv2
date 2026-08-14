@@ -49,6 +49,9 @@ import { addressForMapsQuery } from '../../shared/address';
             <span class="addr">{{ stop.address }}</span>
             <span class="meta">{{ timeLabel(stop) }} · {{ stop.payment_method || 'Sin pago' }} · $ {{ stopTotal(stop) | number:'1.0-0' }}</span>
           </div>
+          <div class="delivered" *ngIf="stop.status === 'entregado' && stop.delivered_at">
+            ✓ Entregado {{ stop.delivered_at | date:'dd/MM HH:mm' }}
+          </div>
           <div *ngIf="stop.customer_note" class="cust-note">
             💬 <span>{{ stop.customer_note }}</span>
           </div>
@@ -198,6 +201,7 @@ import { addressForMapsQuery } from '../../shared/address';
     .row-mid { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
     .addr { color: var(--texto-2); font-size: 12px; }
     .meta { color: var(--muted); font-size: 11px; }
+    .delivered { color: var(--st-entregado); font-size: 11px; font-weight: 700; margin-top: 2px; }
     small, p, span.message { color: var(--muted); font-weight: 500; font-size: 12px; }
     .cust-note {
       background: rgba(245,158,11,.10);

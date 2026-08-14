@@ -55,3 +55,6 @@ secrets.txt
 Screenshot*.png
 screenshot*.png
 *.png
+
+# ...pero los logos del sitio SI van al repo (excepción al *.png de arriba)
+!frontend/public/*.png

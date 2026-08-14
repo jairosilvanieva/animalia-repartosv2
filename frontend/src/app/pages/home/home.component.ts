@@ -10,8 +10,7 @@ import { AuthService } from '../../core/auth.service';
   template: `
     <div class="hub">
       <header class="hub-head">
-        <p class="eyebrow">Sistema interno</p>
-        <h1>Animalia</h1>
+        <img class="logo" src="logo-animalia.png" alt="Animalia - Veterinaria & Boutique" />
         <p class="sub">Elegí el módulo que querés operar.</p>
       </header>
 
@@ -50,8 +49,8 @@ import { AuthService } from '../../core/auth.service';
       display: grid;
       gap: 36px;
     }
-    .hub-head { text-align: center; display: grid; gap: 6px; }
-    .hub-head h1 { font-size: 28px; font-weight: 800; letter-spacing: -.02em; }
+    .hub-head { text-align: center; display: grid; gap: 12px; justify-items: center; }
+    .hub-head .logo { width: 220px; max-width: 70%; height: auto; }
     .hub-head .sub { color: var(--muted); font-size: 14px; }
     .cards { display: grid; gap: 12px; }
     .card {

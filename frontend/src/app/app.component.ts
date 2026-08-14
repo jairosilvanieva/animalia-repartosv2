@@ -11,8 +11,9 @@ import { filter } from 'rxjs';
   template: `
     <header class="topbar">
       <div>
-        <strong>ANIMALIA</strong>
-        <span>Repartos - Base Sarmiento 2790</span>
+        <a routerLink="/" class="brand" aria-label="Inicio - Animalia">
+          <img src="logo-horizontal.png" alt="Animalia" />
+        </a>
       </div>
       <nav>
         <!-- En home: solo link de volver si hace falta + salir -->
@@ -61,23 +62,9 @@ import { filter } from 'rxjs';
       border-bottom: 1px solid var(--line);
       color: var(--texto);
     }
-    .topbar > div { display: flex; align-items: baseline; gap: .6rem; }
-    .topbar strong {
-      font-size: .82rem;
-      font-weight: 800;
-      letter-spacing: .22em;
-      color: var(--texto);
-    }
-    .topbar strong::before {
-      content: '';
-      display: inline-block;
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--rojo);
-      box-shadow: 0 0 12px var(--rojo);
-      margin-right: .55rem;
-      vertical-align: middle;
-    }
+    .topbar > div { display: flex; align-items: center; gap: .7rem; }
+    .brand { display: inline-flex; align-items: center; }
+    .brand img { height: 30px; width: auto; display: block; }
     .topbar span {
       color: var(--muted);
       font-size: .72rem;

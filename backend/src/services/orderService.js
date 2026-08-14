@@ -10,7 +10,8 @@ const ORDER_LIST_COLUMNS = `
   item_summary.products_summary,
   current_route.route_id AS current_route_id,
   current_route.route_status AS current_route_status,
-  current_route.stop_order AS current_route_stop_order
+  current_route.stop_order AS current_route_stop_order,
+  delivered_stop.delivered_at AS delivered_at
 `;
 
 export async function listOrders(filters = {}) {
@@ -85,6 +86,12 @@ export async function listOrders(filters = {}) {
        WHERE dr.status IN ('borrador', 'activa')
          AND rs.status NOT IN ('entregado', 'no_entregado')
     ) current_route ON current_route.order_id = o.id
+    LEFT JOIN (
+      SELECT order_id, MAX(delivered_at) AS delivered_at
+        FROM route_stops
+       WHERE status = 'entregado' AND delivered_at IS NOT NULL
+       GROUP BY order_id
+    ) delivered_stop ON delivered_stop.order_id = o.id
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
     ORDER BY
       o.priority DESC,

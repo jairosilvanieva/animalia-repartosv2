@@ -35,6 +35,7 @@ import { orderDisplayNumber } from '../../shared/order-number';
             <div>
               <strong>{{ route.name }}</strong>
               <span>{{ statusLabel(route.status) }} - {{ route.stops_count || 0 }} paradas</span>
+              <small *ngIf="route.created_at">🕒 Creada {{ route.created_at | date:'dd/MM HH:mm' }}</small>
               <small>
                 {{ route.delivered_count || 0 }} entregadas -
                 {{ route.not_delivered_count || 0 }} no entregadas -
@@ -54,6 +55,7 @@ import { orderDisplayNumber } from '../../shared/order-number';
               <span>{{ order.address }}</span>
               <small>{{ order.products_summary || 'Sin productos cargados' }}</small>
               <small>{{ statusLabel(order.status) }} - Total $ {{ orderTotal(order) | number:'1.2-2' }}</small>
+              <small *ngIf="order.status === 'entregado' && order.delivered_at" class="delivered-at">✓ Entregado {{ order.delivered_at | date:'dd/MM HH:mm' }}</small>
               <small *ngIf="order.payment_status === 'cobrado'">Pagado - no cobrar</small>
               <small *ngIf="order.payment_status !== 'cobrado'">No pagado - cobrar $ {{ order.amount_to_collect | number:'1.2-2' }}</small>
             </div>
@@ -152,6 +154,7 @@ import { orderDisplayNumber } from '../../shared/order-number';
       text-decoration: none;
       font-weight: 900;
     }
+    .row small.delivered-at { color: var(--st-entregado); font-weight: 700; }
     .order.status-entregado { border-left: 3px solid var(--st-entregado); }
     .order.status-no_entregado { border-left: 3px solid var(--st-no_entregado); }
     .order.status-cancelado { border-left: 3px solid var(--st-cancelado); }

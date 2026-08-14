@@ -144,6 +144,21 @@ const STORES = [
             <button class="icon" type="button" (click)="closeEdit()">✕</button>
           </div>
 
+          <!-- Pegar pedido de WhatsApp (solo en nuevo) -->
+          <div class="paste-box" *ngIf="isNew">
+            <div class="paste-head">
+              <span>📋 Pegar pedido de WhatsApp</span>
+              <small>Pega el mensaje del retiro y toca Autocompletar. Revisa antes de guardar.</small>
+            </div>
+            <textarea rows="6" name="pasteText" [(ngModel)]="pasteText"
+              placeholder="Nombre: ...&#10;Teléfono: ...&#10;Entrega:&#10;Retira en Suc ...&#10;Forma de pago / promoción:&#10;...&#10;Productos:&#10;..."></textarea>
+            <div class="paste-actions">
+              <button type="button" class="paste-fill" (click)="parsePaste()">Autocompletar</button>
+              <button type="button" class="paste-clear" (click)="clearPaste()">Limpiar</button>
+              <span class="paste-msg" [class.warn]="pasteWarn" *ngIf="pasteMessage">{{ pasteMessage }}</span>
+            </div>
+          </div>
+
           <!-- Estado (solo en edición) -->
           <div class="status-actions" *ngIf="!isNew">
             <button type="button"
@@ -316,6 +331,17 @@ const STORES = [
     .icon { width: 30px; height: 30px; padding: 0; border-radius: var(--radius-sm); background: var(--panel-2); color: var(--texto-2); border: 1px solid var(--line); font-size: 14px; }
     .icon:hover { background: var(--panel-3); }
 
+    .paste-box { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--rojo); border-radius: var(--radius-sm); background: var(--rojo-l); }
+    .paste-head { display: grid; gap: 3px; }
+    .paste-head span { font-size: 13px; font-weight: 800; color: var(--texto); }
+    .paste-head small { font-size: 11px; color: var(--muted); }
+    .paste-box textarea { width: 100%; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; resize: vertical; }
+    .paste-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .paste-fill { background: var(--rojo); color: #fff; border: none; padding: 9px 14px; font-weight: 800; }
+    .paste-clear { background: var(--panel-2); color: var(--texto); border: 1px solid var(--line); padding: 9px 12px; }
+    .paste-msg { font-size: 12px; font-weight: 700; color: var(--st-entregado); }
+    .paste-msg.warn { color: var(--naranja); }
+
     .section-title { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
     .section-title span { color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
     .section-title hr { flex: 1; border: 0; border-top: 1px solid var(--line); }
@@ -381,6 +407,10 @@ export class RetirosComponent implements OnInit, OnDestroy {
   editPaid  = false;
   editItems: Array<{ product_name: string; quantity: number }> = [this.emptyItem()];
 
+  pasteText = '';
+  pasteMessage = '';
+  pasteWarn = false;
+
   private timer: any;
 
   constructor(private api: ApiService) {}
@@ -441,6 +471,7 @@ export class RetirosComponent implements OnInit, OnDestroy {
     this.editPaid  = false;
     this.editItems = [this.emptyItem()];
     this.saveError.set('');
+    this.clearPaste();
     this.editing.set({} as Order);
   }
 
@@ -450,6 +481,7 @@ export class RetirosComponent implements OnInit, OnDestroy {
     this.editPaid  = false;
     this.editItems = [this.emptyItem()];
     this.saveError.set('');
+    this.clearPaste();
   }
 
   saveEdit() {
@@ -493,6 +525,122 @@ export class RetirosComponent implements OnInit, OnDestroy {
         error: (e) => { this.saving.set(false); this.saveError.set(e?.error?.error || 'Error al guardar.'); },
       });
     }
+  }
+
+  // Toma un pedido pegado de WhatsApp y completa el formulario de retiro.
+  // No guarda: siempre queda para que el usuario revise y toque Guardar.
+  parsePaste() {
+    const text = this.pasteText || '';
+    if (!text.trim()) {
+      this.pasteWarn = true;
+      this.pasteMessage = 'Pega primero el pedido de WhatsApp.';
+      return;
+    }
+
+    const grab = (re: RegExp) => {
+      const m = text.match(re);
+      return m ? m[1].trim() : '';
+    };
+
+    const cliente = grab(/Nombre:\s*(.+)/i);
+    if (cliente) this.editModel.customer_name = cliente;
+
+    const telefono = grab(/Tel[eé]fono:\s*(.+)/i);
+    if (telefono) this.editModel.phone = telefono;
+
+    const dni = grab(/DNI:\s*(.+)/i);
+    if (dni) this.editModel.dni = dni;
+
+    // Sucursal desde "Retira en Suc X".
+    const store = this.detectStore(text);
+    if (store) this.editModel.store_id = store;
+
+    // Forma de pago: primera linea no vacia despues del encabezado.
+    const lines = text.split(/\r?\n/);
+    const payIdx = lines.findIndex((l) => /forma de pago/i.test(l));
+    let payLine = '';
+    if (payIdx >= 0) {
+      for (let i = payIdx + 1; i < lines.length; i++) {
+        if (lines[i].trim()) { payLine = lines[i].trim(); break; }
+      }
+    }
+    const formaPago = this.mapPago(payLine);
+    if (formaPago) this.editModel.payment_method = formaPago;
+
+    const total = this.parseMoney(grab(/Total estimado[^$]*\$?\s*([\d.,]+)/i));
+    if (total) this.editModel.total = total;
+
+    // Notas / Horario -> observaciones internas (+ fecha si aparece).
+    const notas = grab(/Notas\s*\/\s*Horario:\s*(.+)/i);
+    if (notas) this.editModel.internal_notes = notas;
+
+    const fecha = notas.match(/(\d{1,2})\/(\d{1,2})/);
+    if (fecha) {
+      const year = new Date().getFullYear();
+      this.editModel.scheduled_delivery_date = `${year}-${fecha[2].padStart(2, '0')}-${fecha[1].padStart(2, '0')}`;
+    }
+
+    // Productos: pares Producto/Cantidad (tolera con o sin "- Código").
+    const prods: { product_name: string; quantity: number }[] = [];
+    const re = /Producto:\s*(.+?)[\r\n]+\s*Cantidad:\s*(\d+)/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text))) {
+      prods.push({ product_name: m[1].trim(), quantity: Number(m[2]) || 1 });
+    }
+    if (prods.length) this.editItems = prods;
+
+    const esReparto = /env[ií]o a domicilio/i.test(text) || /Direcci[oó]n:/i.test(text);
+    if (esReparto && !store) {
+      this.pasteWarn = true;
+      this.pasteMessage = 'Esto parece un ENVIO a domicilio: cargalo en Repartos → Carga manual. Complete lo que pude, revisa antes de guardar.';
+    } else if (!store) {
+      this.pasteWarn = true;
+      this.pasteMessage = `Cargue ${prods.length} producto(s), pero no detecte la sucursal. Elegila a mano y revisa antes de guardar.`;
+    } else {
+      this.pasteWarn = false;
+      this.pasteMessage = `Listo: ${prods.length} producto(s) cargado(s). Revisa los campos y toca Guardar.`;
+    }
+  }
+
+  clearPaste() {
+    this.pasteText = '';
+    this.pasteMessage = '';
+    this.pasteWarn = false;
+  }
+
+  // "Retira en Suc Constitución" -> id de sucursal. Mismo criterio que el backend.
+  private detectStore(text: string): number | null {
+    const t = text.toLowerCase();
+    if (t.includes('constituc')) return 1;
+    if (t.includes('sarmiento') || t.includes('garay')) return 2;
+    if (t.includes('guemes') || t.includes('güemes') || t.includes('roca')) return 3;
+    return null;
+  }
+
+  private mapPago(line: string): string {
+    const t = (line || '').toLowerCase();
+    if (!t) return '';
+    if (t.includes('bbva') && t.includes('modo')) return 'BBVA + MODO';
+    if (t.includes('bbva') && t.includes('40')) return 'BBVA tarjeta - 40%';
+    if (t.includes('bbva') && t.includes('10%')) return 'BBVA 10% + 3 cuotas';
+    if (t.includes('galicia') && t.includes('modo')) return 'Galicia + MODO';
+    if (t.includes('galicia')) return 'Galicia tarjeta fisica';
+    if (t.includes('cuenta dni')) return 'Cuenta DNI';
+    if (t.includes('provincia')) return 'Bco. Provincia credito';
+    if (t.includes('modo')) return 'MODO - 20%';
+    if (t.includes('efectivo')) return 'Efectivo';
+    if (t.includes('transferencia') || t.includes('1 pago')) return 'Tarjeta 1 pago / Transf.';
+    if (t.includes('3 cuota')) return 'Tarjeta 3 cuotas';
+    if (t.includes('local')) return 'Pago en local';
+    return '';
+  }
+
+  // Formato argentino: "." separa miles y "," decimales. "$12.169" -> 12169.
+  private parseMoney(raw: string): number {
+    if (!raw) return 0;
+    const clean = raw.replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, '');
+    const n = Number(clean);
+    return isNaN(n) ? 0 : n;
   }
 
   addEditItem()          { this.editItems = [...this.editItems, this.emptyItem()]; }

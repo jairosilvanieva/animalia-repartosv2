@@ -37,6 +37,7 @@ export interface Order {
   store_name?: string;
   items_count?: number;
   products_summary?: string;
+  delivered_at?: string | null;
   items?: OrderItem[];
 }
 
