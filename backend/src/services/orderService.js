@@ -414,7 +414,7 @@ const PAYMENT_RULES = {
     'modo + bbva'
   ],
   a_cobrar: [
-    'efectivo (15% de descuento)',
+    'efectivo',
     'cuenta dni',
     '3 cuotas sin interés (pago presencial)',
     '3 cuotas sin interes (pago presencial)',
