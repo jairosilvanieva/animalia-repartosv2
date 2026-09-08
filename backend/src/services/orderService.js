@@ -168,6 +168,15 @@ export async function createWooCommerceOrder(payload) {
     ? resolveStoreFromShipping(payload.modalidad_envio)
     : null;
 
+  // Franja horaria elegida en el checkout -> ventana de entrega (time_window_*).
+  // "mismo_dia" (o sin franja) queda sin ventana: entrega en el transcurso del día.
+  const FRANJA_WINDOWS = {
+    manana: { start: '10:00:00', end: '13:00:00' },
+    mediodia: { start: '12:00:00', end: '16:00:00' },
+    tarde: { start: '15:00:00', end: '19:00:00' }
+  };
+  const win = FRANJA_WINDOWS[payload.franja_entrega_key] || { start: null, end: null };
+
   return createOrder({
     origin: 'woocommerce',
     tipo,
@@ -189,6 +198,8 @@ export async function createWooCommerceOrder(payload) {
     discounts: Number(payload.descuentos || 0),
     total,
     delivery_mode: payload.modalidad_envio,
+    time_window_start: win.start,
+    time_window_end: win.end,
     latitude: payload.latitude || null,
     longitude: payload.longitude || null,
     status: 'pendiente',
