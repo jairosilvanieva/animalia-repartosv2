@@ -31,6 +31,14 @@ import { AuthService } from '../../core/auth.service';
           </div>
         </a>
 
+        <a class="card" href="/vencimientos/">
+          <span class="card-icon">📅</span>
+          <div>
+            <h2>Vencimientos</h2>
+            <p>Control de stock de fecha corta por local.</p>
+          </div>
+        </a>
+
         <a class="card" routerLink="/usuarios" *ngIf="auth.isAdmin()">
           <span class="card-icon">👥</span>
           <div>
