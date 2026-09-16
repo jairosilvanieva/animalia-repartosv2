@@ -92,6 +92,12 @@ interface UserRow {
                 <option value="chofer">Chofer</option>
               </select>
             </label>
+            <label *ngIf="form.role === 'local'">Local
+              <select name="store_id" [(ngModel)]="form.store_id">
+                <option [ngValue]="null">Seleccionar</option>
+                <option *ngFor="let s of stores" [ngValue]="s.id">{{ s.name }}</option>
+              </select>
+            </label>
             <label *ngIf="!e.id">Clave inicial
               <div class="pass-row">
                 <input name="password" required minlength="6" [(ngModel)]="form.password" placeholder="Mínimo 6 caracteres" />
@@ -214,8 +220,13 @@ export class UsersComponent implements OnInit {
   resetTarget = signal<UserRow | null>(null);
   saving = signal(false);
   message = signal('');
-  form: any = { name: '', email: '', role: 'local', password: '' };
+  form: any = { name: '', email: '', role: 'local', password: '', store_id: null };
   resetPass = '';
+  stores = [
+    { id: 1, name: 'Constitución' },
+    { id: 2, name: 'Sarmiento' },
+    { id: 3, name: 'Roca' }
+  ];
 
   constructor(private api: ApiService, private auth: AuthService) {}
 
@@ -229,12 +240,12 @@ export class UsersComponent implements OnInit {
   }
 
   openCreate() {
-    this.form = { name: '', email: '', role: 'local', password: '' };
+    this.form = { name: '', email: '', role: 'local', password: '', store_id: null };
     this.editing.set({});
   }
 
   openEdit(u: UserRow) {
-    this.form = { name: u.name, email: u.email, role: u.role };
+    this.form = { name: u.name, email: u.email, role: u.role, store_id: u.store_id ?? null };
     this.editing.set(u);
   }
 
@@ -249,13 +260,15 @@ export class UsersComponent implements OnInit {
     this.saving.set(true);
     this.message.set('');
 
+    const storeId = this.form.role === 'local' ? (this.form.store_id ?? null) : null;
     const obs = e.id
-      ? this.api.updateUser(e.id, { name: this.form.name, email: this.form.email, role: this.form.role })
+      ? this.api.updateUser(e.id, { name: this.form.name, email: this.form.email, role: this.form.role, store_id: storeId })
       : this.api.createUser({
           name: this.form.name,
           email: this.form.email,
           role: this.form.role,
-          password: this.form.password
+          password: this.form.password,
+          store_id: storeId
         });
 
     obs.subscribe({
