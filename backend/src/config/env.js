@@ -15,5 +15,14 @@ export const env = {
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'animalia_repartos'
+  },
+  // Integracion WhatsApp via Aoki (Reminder API Service).
+  // Si falta apiKey o templateName, la notificacion se saltea (no rompe nada).
+  aoki: {
+    apiKey: process.env.AOKI_API_KEY || '',
+    baseUrl: process.env.AOKI_BASE_URL || 'https://calendar-service.aokitech.com.ar',
+    channelAlias: process.env.AOKI_CHANNEL_ALIAS || '1982164931879555',
+    templateName: process.env.AOKI_TEMPLATE_NAME || '',
+    templateLang: process.env.AOKI_TEMPLATE_LANG || 'es'
   }
 };

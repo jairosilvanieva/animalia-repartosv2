@@ -1,4 +1,5 @@
 import { pool, withTransaction } from '../config/db.js';
+import { notifyRouteOnTheWay } from './aokiService.js';
 
 export async function createRoute(payload) {
   const orderIds = (payload.order_ids || []).map(Number).filter(Boolean);
@@ -164,7 +165,16 @@ export async function startRoute(id) {
     );
   });
 
-  return getRoute(id);
+  const updated = await getRoute(id);
+
+  // Al cargar la ruta a camioneta, avisar por WhatsApp a cada cliente que su
+  // pedido esta en camino. Fire-and-forget: no bloquea ni rompe la carga si
+  // Aoki falla o todavia no esta configurado.
+  notifyRouteOnTheWay(updated).catch((error) =>
+    console.error('[Aoki] error notificando ruta:', error.message)
+  );
+
+  return updated;
 }
 
 export async function finishRoute(id, currentUser) {
