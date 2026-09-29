@@ -22,7 +22,7 @@ export const env = {
     apiKey: process.env.AOKI_API_KEY || '',
     baseUrl: process.env.AOKI_BASE_URL || 'https://calendar-service.aokitech.com.ar',
     channelAlias: process.env.AOKI_CHANNEL_ALIAS || '1982164931879555',
-    templateName: process.env.AOKI_TEMPLATE_NAME || '',
+    templateName: process.env.AOKI_TEMPLATE_NAME || 'aviso_pedido_en_ruta',
     templateLang: process.env.AOKI_TEMPLATE_LANG || 'es'
   }
 };

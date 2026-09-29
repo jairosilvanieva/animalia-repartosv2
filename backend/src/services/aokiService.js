@@ -51,8 +51,11 @@ export async function notifyRouteOnTheWay(route) {
     const receiver = toWhatsappPhone(stop.phone);
     if (!receiver) continue;
 
-    // Variables de la plantilla (POSICIONALES): {{1}} = nombre, {{2}} = Nª entrega.
-    // Si la plantilla aprobada usa otras variables/orden, ajustar este array.
+    // Plantilla 'aviso_pedido_en_ruta' usa variables CON NOMBRE (named), por eso
+    // cada parametro lleva parameter_name y debe coincidir EXACTO con la plantilla
+    // aprobada (incluido el typo 'nuemerodeentrega' tal como quedo en Meta).
+    //   nombre_cliente    = nombre del cliente
+    //   nuemerodeentrega  = posicion en la ruta (ej. "3ª")
     const payload = {
       content: {
         template: {
@@ -62,8 +65,8 @@ export async function notifyRouteOnTheWay(route) {
             {
               type: 'body',
               parameters: [
-                { type: 'text', text: String(stop.customer_name || 'cliente') },
-                { type: 'text', text: String(stop.stop_order || '') }
+                { type: 'text', parameter_name: 'nombre_cliente', text: String(stop.customer_name || 'cliente') },
+                { type: 'text', parameter_name: 'nuemerodeentrega', text: `${stop.stop_order || ''}ª` }
               ]
             }
           ]
