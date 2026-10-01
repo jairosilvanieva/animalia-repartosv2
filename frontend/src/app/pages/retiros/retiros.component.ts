@@ -629,7 +629,8 @@ export class RetirosComponent implements OnInit, OnDestroy {
     if (t.includes('provincia')) return 'Bco. Provincia credito';
     if (t.includes('modo')) return 'MODO - 20%';
     if (t.includes('efectivo')) return 'Efectivo';
-    if (t.includes('transferencia') || t.includes('1 pago')) return 'Tarjeta 1 pago / Transf.';
+    if (t.includes('transferencia') || t.includes('mercado pago')) return 'Mercado Pago / Transf.';
+    if (t.includes('1 pago')) return 'Tarjeta 1 pago';
     if (t.includes('3 cuota')) return 'Tarjeta 3 cuotas';
     if (t.includes('local')) return 'Pago en local';
     return '';

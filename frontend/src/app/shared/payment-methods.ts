@@ -1,6 +1,7 @@
 export const PAYMENT_METHODS = [
   'Efectivo',
-  'Tarjeta 1 pago / Transf.',
+  'Tarjeta 1 pago',
+  'Mercado Pago / Transf.',
   'Tarjeta 3 cuotas',
   'MODO - 20%',
   'Cuenta DNI',
