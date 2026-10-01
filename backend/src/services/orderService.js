@@ -161,7 +161,9 @@ export async function createWooCommerceOrder(payload) {
 
   // Clasificación robusta basada en el método de pago, no en el flag del cliente.
   const paymentStatus = classifyPayment(payload.metodo_pago);
-  const amountToCollect = paymentStatus === 'a_cobrar' ? total : 0;
+  // Solo "cobrado" queda en 0. "corroborar_pago" también conserva el total
+  // (igual que al guardar desde el front), así el chofer/ticket muestra el monto pendiente.
+  const amountToCollect = paymentStatus === 'cobrado' ? 0 : total;
 
   const tipo = payload.tipo === 'retiro' ? 'retiro' : 'reparto';
   const storeId = tipo === 'retiro'

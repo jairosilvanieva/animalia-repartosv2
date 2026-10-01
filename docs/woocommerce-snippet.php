@@ -77,8 +77,40 @@ function animalia_repartos_enviar( $order_id ) {
         return;
     }
 
-    // 2) CP fuera de MDP (todos los CPs MdP empiezan con 76, ej 7600, 7603, etc.)
-    $cp = preg_replace('/^B?/i', '', trim( $order->get_shipping_postcode() ?: '' ));
+    // ===== Direccion / ciudad / CP (formulario nuevo: calle + numero en campos custom) =====
+    // El formulario nuevo guarda la calle y el numero por separado, tanto en
+    // envio (shipping_*) como en facturacion (billing_*). Probamos con y sin "_".
+
+    // 1ro SHIPPING: solo si el cliente marco "enviar a otra direccion".
+    $calle  = trim( (string) ( $order->get_meta('_shipping_street_name')   ?: $order->get_meta('shipping_street_name') ) );
+    $numero = trim( (string) ( $order->get_meta('_shipping_street_number') ?: $order->get_meta('shipping_street_number') ) );
+    if ( empty($calle) ) $calle = trim( (string) $order->get_shipping_address_1() ); // respaldo formato viejo
+
+    if ( ! empty($calle) ) {
+        $dir_envio   = trim( $calle . ' ' . $numero );
+        $dir_envio_2 = trim( (string) $order->get_shipping_address_2() );
+        $ciudad      = trim( (string) $order->get_shipping_city() );
+        $cp          = trim( (string) $order->get_shipping_postcode() );
+    } else {
+        // Sin envio distinto: usamos FACTURACION (el caso normal del formulario nuevo).
+        $calle  = trim( (string) ( $order->get_meta('_billing_street_name')   ?: $order->get_meta('billing_street_name') ) );
+        $numero = trim( (string) ( $order->get_meta('_billing_street_number') ?: $order->get_meta('billing_street_number') ) );
+        if ( empty($calle) ) $calle = trim( (string) $order->get_billing_address_1() ); // respaldo formato viejo
+
+        $dir_envio   = trim( $calle . ' ' . $numero );
+        $dir_envio_2 = trim( (string) $order->get_billing_address_2() );
+        $ciudad      = trim( (string) $order->get_billing_city() );
+        $cp          = trim( (string) $order->get_billing_postcode() );
+    }
+
+    if ( empty($ciudad) ) $ciudad = 'Mar del Plata';
+
+    // La direccion que va a la app es SOLO calle + numero.
+    // El piso/depto/referencia ($dir_envio_2) se agrega a la nota del cliente mas abajo.
+    $direccion_envio = $dir_envio;
+
+    // Filtro CP fuera de MDP (los CPs de MdP empiezan con 76, ej 7600, 7603). Usa el CP ya resuelto.
+    $cp = preg_replace('/^B?/i', '', $cp);
     if ( $cp && ! preg_match('/^76\d{2}$/', $cp) ) {
         $order->update_meta_data('_animalia_repartos_notificado', 'skip_fuera_mdp');
         $order->save();
@@ -90,14 +122,12 @@ function animalia_repartos_enviar( $order_id ) {
     $nombre_cliente = trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
     $telefono = $order->get_billing_phone() ?: '';
     $dni = $order->get_meta('_billing_dni') ?: '';
-
-    $direccion_envio = trim( $order->get_shipping_address_1() );
-    if ( $order->get_shipping_address_2() ) {
-        $direccion_envio .= ', ' . $order->get_shipping_address_2();
+    // Nota del cliente + piso/depto/referencia (sin pisar lo que escribio el cliente).
+    $nota = trim( (string) $order->get_customer_note() );
+    if ( ! empty($dir_envio_2) ) {
+        $ref = 'Piso/Depto/Ref: ' . $dir_envio_2;
+        $nota = $nota !== '' ? ( $nota . ' — ' . $ref ) : $ref;
     }
-
-    $ciudad = $order->get_shipping_city() ?: 'Mar del Plata';
-    $nota = $order->get_customer_note() ?: '';
     $metodo_pago = $order->get_payment_method_title() ?: '';
 
     // Items con cantidad, precio unitario y total
