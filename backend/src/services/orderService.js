@@ -432,7 +432,12 @@ const PAYMENT_RULES = {
     '3 cuotas sin interés (pago presencial)',
     '3 cuotas sin interes (pago presencial)',
     'plan z naranja x',
-    'promo bbva (pago presencial)'
+    'promo bbva (pago presencial)',
+    // Cubre variantes: "Promo BBVA. Pago Presencial (MARTES Y JUEVES)", "Promoción Galicia - MARTES (pago presencial)", etc.
+    'pago presencial',
+    'promo bbva',
+    'promoción galicia',
+    'promocion galicia'
   ]
 };
 
