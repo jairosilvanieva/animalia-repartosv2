@@ -39,6 +39,14 @@ import { AuthService } from '../../core/auth.service';
           </div>
         </a>
 
+        <a class="card" href="/recordatorio-turnos/">
+          <span class="card-icon">💬</span>
+          <div>
+            <h2>Recordatorio de turnos</h2>
+            <p>Aviso por WhatsApp del turno de peluquería del día siguiente.</p>
+          </div>
+        </a>
+
         <a class="card" routerLink="/usuarios" *ngIf="auth.isAdmin()">
           <span class="card-icon">👥</span>
           <div>
