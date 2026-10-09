@@ -418,27 +418,24 @@ function normalizePaymentMethod(method = '', orderDate = null) {
 // Default = corroborar_pago (conservador: si no lo conocemos, que lo revise el admin).
 const PAYMENT_RULES = {
   cobrado: [
-    'modo + galicia',
     'tarjeta de débito o crédito en 1 pago',
     'tarjeta de debito o credito en 1 pago',
     'modo'
   ],
   corroborar_pago: [
     'dinero disponible en mercado pago o transferencia bancaria',
-    'modo + bbva'
+    'mercado pago',
+    'transferencia',
+    'modo + bbva',
+    'galicia + modo',
+    'modo + galicia'
   ],
   a_cobrar: [
     'efectivo',
     'cuenta dni',
-    '3 cuotas sin interés (pago presencial)',
-    '3 cuotas sin interes (pago presencial)',
     'plan z naranja x',
-    'promo bbva (pago presencial)',
-    // Cubre variantes: "Promo BBVA. Pago Presencial (MARTES Y JUEVES)", "Promoción Galicia - MARTES (pago presencial)", etc.
-    'pago presencial',
-    'promo bbva',
-    'promoción galicia',
-    'promocion galicia'
+    'pago presencial', // 3 cuotas sin interés, Promo BBVA (viernes/sábado y martes/jueves), etc.
+    'promo bbva'
   ]
 };
 
