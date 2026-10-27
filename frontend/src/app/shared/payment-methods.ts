@@ -3,7 +3,7 @@ export const PAYMENT_METHODS = [
   'Tarjeta 1 pago',
   'Mercado Pago / Transf.',
   'Tarjeta 3 cuotas',
-  'MODO - 20%',
+  'MODO - 15%',
   'Cuenta DNI',
   'Bco. Provincia credito',
   'Galicia tarjeta fisica',

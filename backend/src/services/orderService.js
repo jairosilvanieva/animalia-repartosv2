@@ -405,7 +405,7 @@ function normalizePaymentMethod(method = '', orderDate = null) {
   if (lower.includes('galicia') && lower.includes('modo')) return 'Galicia + MODO';
   if (lower.includes('galicia')) return 'Galicia tarjeta fisica';
   if (lower.includes('cuenta dni')) return 'Cuenta DNI';
-  if (lower.includes('modo')) return 'MODO - 20%';
+  if (lower.includes('modo')) return 'MODO - 15%';
   if (lower.includes('mercado pago') || lower.includes('transferencia')) return 'Mercado Pago / Transf.';
   if (lower.includes('1 pago') || lower.includes('débito') || lower.includes('debito')) return 'Tarjeta 1 pago';
   if (lower.includes('tarjeta') && lower.includes('3')) return 'Tarjeta 3 cuotas';
