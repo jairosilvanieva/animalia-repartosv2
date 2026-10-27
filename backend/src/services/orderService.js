@@ -156,11 +156,13 @@ export async function createWooCommerceOrder(payload) {
     return getOrder(existing[0].id);
   }
 
-  const paymentMethod = normalizePaymentMethod(payload.metodo_pago, payload.fecha);
+  // Si WooCommerce manda el título vacío, el identificador del gateway resuelve MODO simple.
+  const metodoPago = payload.metodo_pago || (payload.metodo_pago_id === 'wc_modo' ? 'MODO' : '');
+  const paymentMethod = normalizePaymentMethod(metodoPago, payload.fecha);
   const total = Number(payload.total || 0);
 
   // Clasificación robusta basada en el método de pago, no en el flag del cliente.
-  const paymentStatus = classifyPayment(payload.metodo_pago);
+  const paymentStatus = classifyPayment(metodoPago);
   // Solo "cobrado" queda en 0. "corroborar_pago" también conserva el total
   // (igual que al guardar desde el front), así el chofer/ticket muestra el monto pendiente.
   const amountToCollect = paymentStatus === 'cobrado' ? 0 : total;

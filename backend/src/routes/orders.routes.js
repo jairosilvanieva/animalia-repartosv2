@@ -38,6 +38,7 @@ const wooOrderSchema = z.object({
   dni: z.string().optional(),
   productos: z.array(z.any()).default([]),
   metodo_pago: z.string().optional(),
+  metodo_pago_id: z.string().optional(),
   subtotal: z.coerce.number().optional(),
   descuentos: z.coerce.number().optional(),
   total: z.coerce.number().optional(),
