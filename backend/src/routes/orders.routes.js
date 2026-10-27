@@ -67,6 +67,14 @@ router.post('/manual', authenticate, allowRoles(...STAFF), asyncHandler(async (r
 }));
 
 router.post('/from-woocommerce', authenticateInternalApi, asyncHandler(async (req, res) => {
+  // DEBUG pago: registra el dato crudo que manda WooCommerce (ver con: pm2 logs animalia-repartos).
+  console.log('[woo-pago]', JSON.stringify({
+    order_number: req.body?.order_number,
+    estado: req.body?.estado_woocommerce,
+    metodo_pago: req.body?.metodo_pago,
+    metodo_pago_id: req.body?.metodo_pago_id ?? null,
+    pagado: req.body?.pagado
+  }));
   const input = wooOrderSchema.parse(req.body);
 
   const modalidad = String(input.modalidad_envio || '').toLowerCase();
