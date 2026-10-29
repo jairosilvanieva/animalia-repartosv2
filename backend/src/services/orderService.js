@@ -444,6 +444,8 @@ const PAYMENT_RULES = {
 export function classifyPayment(methodTitle = '') {
   const t = String(methodTitle || '').toLowerCase().trim();
   if (!t) return 'corroborar_pago';
+  // Promo BBVA online ya está pagada (Openpay), por eso va antes que la regla "promo bbva" de a_cobrar.
+  if (t === 'promo bbva - martes y jueves (pago online)') return 'cobrado';
   // Orden importa: a_cobrar tiene reglas con "presencial" que ganan sobre "modo" o "bbva" genéricas.
   if (PAYMENT_RULES.a_cobrar.some((k) => t.includes(k))) return 'a_cobrar';
   if (PAYMENT_RULES.corroborar_pago.some((k) => t.includes(k))) return 'corroborar_pago';
